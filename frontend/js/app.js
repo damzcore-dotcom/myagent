@@ -189,6 +189,10 @@ function showLogin() {
 }
 
 function showApp() {
+  // Trigger loading model in background on server
+  fetch('http://127.0.0.1:3001/api/model/load', { method: 'POST' })
+    .catch(e => console.warn('[MODEL LOAD ERROR]', e.message));
+
   const sidebar = $('#sidebar');
   const main = $('#main-content');
   const mobileHeader = $('#mobile-header');

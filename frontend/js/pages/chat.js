@@ -5,6 +5,7 @@
  */
 
 import { $, $$, uid, formatTime, typeWriter, sleep } from '../utils/helpers.js';
+import { getCurrentUser } from './login.js';
 
 let chatMessages = [];
 let isRecording = false;
@@ -51,7 +52,9 @@ const SEND_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
 
 function loadChatHistory() {
   try {
-    const saved = localStorage.getItem('damz_chat_history');
+    const user = getCurrentUser();
+    const historyKey = user && user.email ? `damz_chat_history_${user.email.toLowerCase().trim()}` : 'damz_chat_history';
+    const saved = localStorage.getItem(historyKey);
     if (saved) {
       chatMessages = JSON.parse(saved);
       return;
@@ -73,7 +76,21 @@ function loadChatHistory() {
 }
 
 function saveChatHistory() {
-  localStorage.setItem('damz_chat_history', JSON.stringify(chatMessages));
+  const user = getCurrentUser();
+  const historyKey = user && user.email ? `damz_chat_history_${user.email.toLowerCase().trim()}` : 'damz_chat_history';
+  
+  // Apply limit: keep only the last 50 messages
+  const maxMessages = 50;
+  if (chatMessages.length > maxMessages) {
+    const welcome = chatMessages.find(m => m.id === 'msg-welcome');
+    let trimmed = chatMessages.filter(m => m.id !== 'msg-welcome');
+    if (trimmed.length > maxMessages - 1) {
+      trimmed = trimmed.slice(trimmed.length - (maxMessages - 1));
+    }
+    chatMessages = welcome ? [welcome, ...trimmed] : trimmed;
+  }
+  
+  localStorage.setItem(historyKey, JSON.stringify(chatMessages));
 }
 
 function initSpeechRecognition() {

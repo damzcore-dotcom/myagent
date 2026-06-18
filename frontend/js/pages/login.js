@@ -286,7 +286,7 @@ export function mount(onLogin) {
 
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          throw new Error(data.message || 'Registration failed');
+          throw new Error(data.error || data.message || 'Registration failed');
         }
 
         const data = await res.json();
@@ -367,7 +367,12 @@ export function getCurrentUser() {
 }
 
 /** Log out — clear session. */
-export function logout() {
+export async function logout() {
+  try {
+    await fetch('http://127.0.0.1:3001/api/model/unload', { method: 'POST' });
+  } catch (err) {
+    console.warn('[MODEL UNLOAD ERROR]', err.message);
+  }
   localStorage.removeItem('damz_session');
   // Try to call better-auth logout
   fetch('http://127.0.0.1:3001/api/auth/sign-out', { method: 'POST', credentials: 'include' }).catch(() => {});

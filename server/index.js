@@ -272,6 +272,19 @@ app.all('/api/auth/*', async (req, res) => {
       const password = req.body?.password;
 
       if (email) {
+        if (req.path === '/api/auth/sign-up/email') {
+          const db = readDB();
+          const isRegisteredUser = db.user.some(u => u.email?.toLowerCase().trim() === email);
+          const isPendingUser = db.pending_users.some(u => u.email?.toLowerCase().trim() === email);
+          if (isRegisteredUser || isPendingUser) {
+            addLog('warn', 'SYSTEM', `Pendaftaran ditolak, email sudah terdaftar: ${email}`);
+            return res.status(400).json({
+              error: "Email anda sudah terdaftar di sistem kami, Silahkan hubungi Customer Service Kami",
+              message: "Email anda sudah terdaftar di sistem kami, Silahkan hubungi Customer Service Kami"
+            });
+          }
+        }
+
         let allowedEmailsString = '';
         try {
           const configPath = path.join(__dirname, '..', 'config.yaml');
@@ -462,6 +475,18 @@ function getOllamaUrl() {
   return 'http://localhost:11434';
 }
 
+function getModelName() {
+  try {
+    const configPath = path.join(__dirname, '..', 'config.yaml');
+    if (fs.existsSync(configPath)) {
+      const content = fs.readFileSync(configPath, 'utf8');
+      const match = content.match(/model:\s*"([^"]+)"/);
+      if (match) return match[1];
+    }
+  } catch (e) { /* fallback */ }
+  return 'qwen2.5:7b';
+}
+
 // Test Ollama connection
 app.get('/api/ollama/test', async (req, res) => {
   const baseUrl = req.query.url || getOllamaUrl();
@@ -627,6 +652,69 @@ app.post('/api/ollama/chat', async (req, res) => {
   } catch (err) {
     addLog('error', 'LLM', `Gagal memproses chat Ollama: ${err.message}`);
     res.json({ success: false, error: err.message });
+  }
+});
+
+// ── Model Load & Unload APIs ─────────────────────────
+
+// Load model endpoint
+app.post('/api/model/load', requireAuth, async (req, res) => {
+  try {
+    const baseUrl = getOllamaUrl();
+    const model = getModelName();
+    addLog('info', 'LLM', `Memuat model ${model} ke memori server...`);
+    
+    // Asynchronously call Ollama to preload the model
+    fetch(`${baseUrl}/api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: model,
+        prompt: '',
+        keep_alive: '5m'
+      })
+    }).catch(e => console.error('[MODEL LOAD ERROR]', e.message));
+
+    res.json({ success: true, message: `Model ${model} loading initiated.` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Unload model endpoint
+app.post('/api/model/unload', requireAuth, async (req, res) => {
+  try {
+    const db = readDB();
+    const currentTime = new Date();
+    
+    // Check if there are other active sessions besides the current one
+    const otherActiveSessions = db.session.filter(s => 
+      s.userId !== req.user.id && new Date(s.expiresAt) > currentTime
+    );
+
+    if (otherActiveSessions.length > 0) {
+      addLog('info', 'SYSTEM', `Model tidak dinonaktifkan karena masih digunakan oleh user lain.`);
+      return res.json({ success: true, unloaded: false, message: 'Model still in use by other users.' });
+    }
+
+    const baseUrl = getOllamaUrl();
+    const model = getModelName();
+    addLog('info', 'LLM', `Menonaktifkan model ${model} di server karena user terakhir logout.`);
+
+    // Unload model in Ollama by setting keep_alive to 0
+    fetch(`${baseUrl}/api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: model,
+        prompt: '',
+        keep_alive: 0
+      })
+    }).catch(e => console.error('[MODEL UNLOAD ERROR]', e.message));
+
+    res.json({ success: true, unloaded: true, message: `Model ${model} unloaded.` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
