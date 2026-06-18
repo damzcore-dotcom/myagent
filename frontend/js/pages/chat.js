@@ -318,18 +318,14 @@ async function updateMicDevicesList() {
 // ── Text-to-Speech (TTS) ─────────────────────────────
 function speakText(text) {
   if (!isTtsEnabled) return;
+  if (!('speechSynthesis' in window)) return;
 
-  // Stop any currently playing audio/speech
-  if (currentAudio) {
-    currentAudio.pause();
-    currentAudio = null;
-  }
-  if (window.speechSynthesis) {
-    window.speechSynthesis.cancel();
-  }
+  // Stop any currently playing speech
+  window.speechSynthesis.cancel();
 
-  // Clean the text: remove markdown symbols, URLs, etc.
+  // Clean the text: remove Chinese character hallucinations, markdown symbols, URLs, etc.
   const cleanText = text
+    .replace(/[\u4e00-\u9fa5]/g, '') // Filter out Chinese characters
     .replace(/```[\s\S]*?```/g, 'blok kode.')
     .replace(/`[^`]+`/g, '')
     .replace(/\*\*(.+?)\*\*/g, '$1')
@@ -341,7 +337,68 @@ function speakText(text) {
 
   if (!cleanText) return;
 
-  // Helper to set speaker visual status in the sidebar
+  currentUtterance = new SpeechSynthesisUtterance(cleanText);
+
+  // Language & Voice settings: use saved setting
+  const saved = localStorage.getItem('damz_settings');
+  let lang = 'id-ID';
+  let ttsVoiceSetting = '';
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      if (parsed.stt && parsed.stt.language) {
+        lang = parsed.stt.language === 'English' ? 'en-US' : 'id-ID';
+      }
+      if (parsed.tts && parsed.tts.voice) {
+        ttsVoiceSetting = parsed.tts.voice; // e.g. 'id_ID-male-medium' or 'id_ID-female-medium'
+      }
+    } catch (e) {}
+  }
+  currentUtterance.lang = lang;
+  currentUtterance.rate = 1.0;
+  currentUtterance.pitch = 1.0;
+  currentUtterance.volume = 1.0;
+
+  // Select the best natural-sounding voice
+  const voices = window.speechSynthesis.getVoices();
+  let preferred = null;
+
+  if (lang === 'id-ID') {
+    // Try to map based on gender settings
+    if (ttsVoiceSetting.includes('male')) {
+      preferred = voices.find(v => v.lang === lang && v.name.includes('Ardi')); // Edge Online Male
+    } else if (ttsVoiceSetting.includes('female')) {
+      preferred = voices.find(v => v.lang === lang && v.name.includes('Gadis')); // Edge Online Female
+    }
+
+    // Fallbacks if not found:
+    if (!preferred) {
+      preferred = 
+        voices.find(v => v.lang === lang && v.name.includes('Gadis')) || // Default female
+        voices.find(v => v.lang === lang && v.name.includes('Ardi')) ||  // Default male
+        voices.find(v => v.lang === lang && v.name.includes('Natural')) ||
+        voices.find(v => v.lang === lang && v.name.includes('Online')) ||
+        voices.find(v => v.lang === lang && !v.name.includes('Google')) ||
+        voices.find(v => v.lang === lang) ||
+        voices.find(v => v.lang.startsWith('id')) ||
+        null;
+    }
+  } else {
+    // English voice mapping
+    preferred = 
+      voices.find(v => v.lang === lang && v.name.includes('Natural')) ||
+      voices.find(v => v.lang === lang && v.name.includes('Online')) ||
+      voices.find(v => v.lang === lang && !v.name.includes('Google')) ||
+      voices.find(v => v.lang === lang) ||
+      null;
+  }
+
+  if (preferred) {
+    currentUtterance.voice = preferred;
+    console.log(`[TTS] Using Edge natural voice: ${preferred.name}`);
+  }
+
+  // Visual feedback helper
   const setSpeakerActive = (active) => {
     const spkDot = document.querySelector('[data-indicator="SPK"]');
     if (spkDot) {
@@ -353,77 +410,6 @@ function speakText(text) {
       spkStatus.textContent = active ? 'Speaking' : 'Idle';
     }
   };
-
-  // Load speed setting from localStorage to adjust Piper speed (length_scale)
-  const savedSettings = localStorage.getItem('damz_settings');
-  let speed = 1.0;
-  if (savedSettings) {
-    try {
-      const parsed = JSON.parse(savedSettings);
-      if (parsed.tts && parsed.tts.speed) {
-        speed = parsed.tts.speed;
-      }
-    } catch (e) {}
-  }
-  // Piper length_scale is inverse of speed. Default base is 1.25 (slower for Indonesian)
-  const lengthScale = (1.25 / speed).toFixed(2);
-
-  // Try to use backend Piper TTS endpoint first
-  const audioUrl = `http://localhost:3001/api/tts?text=${encodeURIComponent(cleanText)}&length_scale=${lengthScale}`;
-  currentAudio = new Audio(audioUrl);
-
-  currentAudio.onplay = () => {
-    setSpeakerActive(true);
-  };
-
-  currentAudio.onended = () => {
-    setSpeakerActive(false);
-    currentAudio = null;
-  };
-
-  currentAudio.onerror = (e) => {
-    console.warn('[TTS] Piper audio failed to play, falling back to Web Speech API:', e);
-    setSpeakerActive(false);
-    currentAudio = null;
-    speakTextWebSpeech(cleanText, setSpeakerActive);
-  };
-
-  currentAudio.play().catch(err => {
-    console.warn('[TTS] Playback error or Piper offline, trying Web Speech API fallback:', err);
-    setSpeakerActive(false);
-    currentAudio = null;
-    speakTextWebSpeech(cleanText, setSpeakerActive);
-  });
-}
-
-function speakTextWebSpeech(cleanText, setSpeakerActive) {
-  if (!('speechSynthesis' in window)) return;
-
-  currentUtterance = new SpeechSynthesisUtterance(cleanText);
-
-  // Language: use saved setting
-  const saved = localStorage.getItem('damz_settings');
-  let lang = 'id-ID';
-  if (saved) {
-    try {
-      const parsed = JSON.parse(saved);
-      if (parsed.stt && parsed.stt.language) {
-        lang = parsed.stt.language === 'English' ? 'en-US' : 'id-ID';
-      }
-    } catch (e) {}
-  }
-  currentUtterance.lang = lang;
-  currentUtterance.rate = 1.05;
-  currentUtterance.pitch = 1.0;
-  currentUtterance.volume = 1.0;
-
-  // Try to pick a natural-sounding voice
-  const voices = window.speechSynthesis.getVoices();
-  const preferred = voices.find(v => v.lang === lang && !v.name.includes('Google')) ||
-                    voices.find(v => v.lang === lang) ||
-                    voices.find(v => v.lang.startsWith('id')) ||
-                    null;
-  if (preferred) currentUtterance.voice = preferred;
 
   currentUtterance.onstart = () => {
     setSpeakerActive(true);
