@@ -67,6 +67,18 @@ export function render() {
                 <div class="login-field">
                   <label class="login-label" for="reg-password">Kata Sandi</label>
                   <input type="password" class="input" id="reg-password" placeholder="Masukkan kata sandi (min. 8 karakter)" autocomplete="new-password" required>
+                  <!-- Password Strength Indicator -->
+                  <div id="password-strength-container" class="hidden" style="margin-top: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                      <span style="font-size: 11px; font-family: var(--font-mono); color: var(--text-muted);">Kekuatan Sandi:</span>
+                      <span id="password-strength-text" style="font-size: 11px; font-family: var(--font-mono); font-weight: bold;">Lemah</span>
+                    </div>
+                    <div style="display: flex; gap: 4px; height: 4px;">
+                      <div class="strength-bar-segment" style="flex: 1; background: var(--border); border-radius: var(--radius); transition: background 0.3s;"></div>
+                      <div class="strength-bar-segment" style="flex: 1; background: var(--border); border-radius: var(--radius); transition: background 0.3s;"></div>
+                      <div class="strength-bar-segment" style="flex: 1; background: var(--border); border-radius: var(--radius); transition: background 0.3s;"></div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -128,8 +140,66 @@ export function mount(onLogin) {
 
       errorEl.classList.add('hidden');
       successEl.classList.add('hidden');
+      if (strengthContainer) strengthContainer.classList.add('hidden');
     });
   });
+
+  // Password strength logic
+  const regPasswordInput = $('#reg-password');
+  const strengthContainer = $('#password-strength-container');
+  const strengthText = $('#password-strength-text');
+  const strengthSegments = document.querySelectorAll('.strength-bar-segment');
+
+  if (regPasswordInput && strengthContainer) {
+    regPasswordInput.addEventListener('input', () => {
+      const val = regPasswordInput.value;
+      if (!val) {
+        strengthContainer.classList.add('hidden');
+        return;
+      }
+      strengthContainer.classList.remove('hidden');
+
+      const score = calculatePasswordStrength(val);
+      updateStrengthUI(score);
+    });
+  }
+
+  function calculatePasswordStrength(pwd) {
+    let score = 0;
+    if (pwd.length >= 8) score += 1;
+    if (/[A-Z]/.test(pwd) && /[a-z]/.test(pwd)) score += 1;
+    if (/[0-9]/.test(pwd)) score += 1;
+    if (/[^A-Za-z0-9]/.test(pwd)) score += 1;
+    
+    if (pwd.length < 8) return 1; // Always weak if < 8 chars
+    if (score <= 2) return 1;    // Weak
+    if (score === 3) return 2;   // Medium
+    return 3;                    // Strong
+  }
+
+  function updateStrengthUI(score) {
+    const colors = {
+      1: { text: 'Lemah 🔴', color: 'var(--status-red)', activeCount: 1 },
+      2: { text: 'Sedang 🟡', color: 'var(--status-yellow)', activeCount: 2 },
+      3: { text: 'Kuat 🟢', color: 'var(--primary)', activeCount: 3 }
+    };
+
+    const current = colors[score];
+    if (strengthText) {
+      strengthText.textContent = current.text;
+      strengthText.style.color = current.color;
+    }
+
+    if (strengthSegments.length > 0) {
+      strengthSegments.forEach((seg, idx) => {
+        if (idx < current.activeCount) {
+          seg.style.backgroundColor = current.color;
+        } else {
+          seg.style.backgroundColor = 'var(--border)';
+        }
+      });
+    }
+  }
 
   // Form submit
   form.addEventListener('submit', async (e) => {
