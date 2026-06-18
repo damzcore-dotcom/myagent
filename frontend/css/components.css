@@ -81,9 +81,14 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: var(--space-4);
-  transition: border-color var(--transition-fast);
+  box-shadow: var(--card-shadow);
+  transition: all var(--transition-normal);
 }
-.card:hover { border-color: var(--surface-highest); }
+.card:hover {
+  border-color: var(--surface-highest);
+  box-shadow: var(--card-shadow-hover);
+  transform: translateY(-2px);
+}
 
 .card-header {
   display: flex;

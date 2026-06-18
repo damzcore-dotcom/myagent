@@ -997,12 +997,20 @@
   box-shadow: 0 0 10px var(--status-red), inset 0 1px 1px rgba(255,255,255,0.5);
 }
 
+/* User Management card grid */
+.card-grid-users {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: var(--space-4);
+}
+
 /* ── Mobile Responsive Page Specifics ───────────────── */
 @media (max-width: 768px) {
   /* Grid overrides */
   .card-grid-2,
   .card-grid-3,
-  .card-grid-4 {
+  .card-grid-4,
+  .card-grid-users {
     grid-template-columns: 1fr !important;
     gap: var(--space-3) !important;
   }

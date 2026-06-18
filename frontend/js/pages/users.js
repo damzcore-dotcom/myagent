@@ -28,7 +28,7 @@ export function render() {
         <button id="users-alert-close" class="btn-ghost" style="border: none; background: transparent; cursor: pointer; color: inherit; font-size: 14px; line-height: 1;">&times;</button>
       </div>
 
-      <div class="card-grid" style="grid-template-columns: 1.4fr 1fr; gap: var(--space-4); display: grid;">
+      <div class="card-grid-users">
         <!-- Left Column: Pending Approvals and Registered Accounts -->
         <div class="flex flex-col gap-4">
           <!-- Pending Approvals -->
@@ -46,7 +46,7 @@ export function render() {
               <span class="badge badge--yellow" id="pending-count-badge">0 Pending</span>
             </div>
 
-            <div class="card-body" style="flex: 1; overflow-y: auto; max-height: 250px;">
+            <div class="card-body" style="flex: 1; overflow-y: auto; overflow-x: auto; max-height: 250px;">
               <div id="pending-empty-state" class="empty-state">
                 <div class="empty-state-icon" style="font-size: 28px; margin-bottom: 12px;">✔️</div>
                 <div class="empty-state-text">No pending registration requests</div>
@@ -80,7 +80,7 @@ export function render() {
               <span class="badge badge--green" id="registered-count-badge">0 Users</span>
             </div>
 
-            <div class="card-body" style="flex: 1; overflow-y: auto; max-height: 250px;">
+            <div class="card-body" style="flex: 1; overflow-y: auto; overflow-x: auto; max-height: 250px;">
               <div id="registered-empty-state" class="empty-state">
                 <div class="empty-state-icon" style="font-size: 28px; margin-bottom: 12px;">👥</div>
                 <div class="empty-state-text">No registered accounts found</div>
@@ -123,7 +123,7 @@ export function render() {
               </div>
               <span class="badge badge--green" id="whitelist-count-badge">0 Allowed</span>
             </div>
-            <div class="card-body" style="flex: 1; overflow-y: auto; max-height: 180px;">
+            <div class="card-body" style="flex: 1; overflow-y: auto; overflow-x: auto; max-height: 180px;">
               <table class="data-table" id="whitelist-table">
                 <thead>
                   <tr>
@@ -149,7 +149,7 @@ export function render() {
               </div>
               <span class="badge badge--red" id="rejected-count-badge">0 Rejected</span>
             </div>
-            <div class="card-body" style="flex: 1; overflow-y: auto; max-height: 180px;">
+            <div class="card-body" style="flex: 1; overflow-y: auto; overflow-x: auto; max-height: 180px;">
               <div id="rejected-empty-state" class="empty-state">
                 <div class="empty-state-icon" style="font-size: 24px; margin-bottom: 8px;">🚫</div>
                 <div class="empty-state-text" style="font-size: 12px;">No rejected history</div>

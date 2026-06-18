@@ -96,6 +96,10 @@
   --gutter:        16px;
   --content-padding: 24px;
 
+  /* ── Shadows ────────────────────────────────────── */
+  --card-shadow:        0 4px 12px rgba(0, 0, 0, 0.3);
+  --card-shadow-hover:  0 12px 28px rgba(0, 0, 0, 0.45);
+
   /* ── Transitions ────────────────────────────────── */
   --transition-fast:   0.12s ease;
   --transition-normal: 0.2s ease;
@@ -165,5 +169,9 @@
   /* Error */
   --error:              #ffebe9;
   --error-container:    #cf222e;
+
+  /* Shadows */
+  --card-shadow:        0 4px 16px rgba(27, 31, 35, 0.07), 0 1px 3px rgba(27, 31, 35, 0.04);
+  --card-shadow-hover:  0 12px 32px rgba(27, 31, 35, 0.12), 0 2px 8px rgba(27, 31, 35, 0.06);
 }
 
