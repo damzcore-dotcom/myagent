@@ -285,25 +285,25 @@ export function mount(onLogin) {
         const data = await res.json();
 
         if (res.status === 202 || data.pending) {
-          alert('⚠️ Account anda akan kami tinjau terlebih dahulu, Terimakasih sudah mendaftar');
-          
-          // Clear registration fields
-          $('#reg-name').value = '';
-          $('#reg-email').value = '';
-          $('#reg-password').value = '';
-          
-          // Switch back to login (Masuk) tab
-          currentTab = 'login';
-          tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === 'login'));
-          loginFields.classList.remove('hidden');
-          registerFields.classList.add('hidden');
-          btnText.textContent = 'Masuk';
+          showModalAlert('⚠️ Account anda akan kami tinjau terlebih dahulu, Terimakasih sudah mendaftar', () => {
+            // Clear registration fields
+            $('#reg-name').value = '';
+            $('#reg-email').value = '';
+            $('#reg-password').value = '';
+            
+            // Switch back to login (Masuk) tab
+            currentTab = 'login';
+            tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === 'login'));
+            loginFields.classList.remove('hidden');
+            registerFields.classList.add('hidden');
+            btnText.textContent = 'Masuk';
 
-          if (loginEmail) loginEmail.required = true;
-          if (loginPassword) loginPassword.required = true;
-          if (regName) regName.required = false;
-          if (regEmail) regEmail.required = false;
-          if (regPassword) regPassword.required = false;
+            if (loginEmail) loginEmail.required = true;
+            if (loginPassword) loginPassword.required = true;
+            if (regName) regName.required = false;
+            if (regEmail) regEmail.required = false;
+            if (regPassword) regPassword.required = false;
+          });
           return;
         }
 
@@ -364,4 +364,115 @@ export function logout() {
   localStorage.removeItem('damz_session');
   // Try to call better-auth logout
   fetch('http://127.0.0.1:3001/api/auth/sign-out', { method: 'POST', credentials: 'include' }).catch(() => {});
+}
+
+/** Display a premium dark themed modal dialog instead of browser alert() */
+function showModalAlert(message, callback) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = `
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 14, 20, 0.85);
+    backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    animation: fadeIn 0.2s ease;
+  `;
+
+  const card = document.createElement('div');
+  card.style.cssText = `
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    max-width: 420px;
+    width: 90%;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  `;
+
+  // Top Yellow Status Bar
+  const bar = document.createElement('div');
+  bar.style.cssText = `
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--status-yellow);
+  `;
+  card.appendChild(bar);
+
+  // App Title
+  const title = document.createElement('div');
+  title.style.cssText = `
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 18px;
+    margin-top: 6px;
+  `;
+  title.textContent = '🤖 DAMZ AGENT';
+  card.appendChild(title);
+
+  // Message body
+  const body = document.createElement('div');
+  body.style.cssText = `
+    font-family: var(--font-sans);
+    font-size: 14px;
+    color: var(--text-primary);
+    line-height: 1.6;
+    margin-bottom: 24px;
+    text-align: center;
+  `;
+  body.textContent = message;
+  card.appendChild(body);
+
+  // Button Wrapper
+  const btnWrapper = document.createElement('div');
+  btnWrapper.style.cssText = `
+    display: flex;
+    justify-content: center;
+  `;
+
+  // OK Button
+  const btn = document.createElement('button');
+  btn.className = 'btn btn-primary';
+  btn.style.cssText = `
+    padding: 8px 32px;
+    font-size: 12px;
+    min-width: 100px;
+    justify-content: center;
+  `;
+  btn.textContent = 'OK';
+  btnWrapper.appendChild(btn);
+  card.appendChild(btnWrapper);
+
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
+
+  // Close overlay animation
+  const close = () => {
+    overlay.style.opacity = '0';
+    overlay.style.transition = 'opacity 0.15s ease';
+    card.style.transform = 'translateY(12px)';
+    card.style.transition = 'transform 0.15s ease';
+    setTimeout(() => {
+      document.body.removeChild(overlay);
+      if (callback) callback();
+    }, 150);
+  };
+
+  btn.addEventListener('click', close);
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) close();
+  });
 }
