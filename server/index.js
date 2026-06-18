@@ -492,9 +492,14 @@ app.post('/api/ollama/chat', async (req, res) => {
     const data = await r.json();
     const latency = Date.now() - start;
     addLog('info', 'LLM', `Respons Ollama berhasil didapatkan dalam ${latency}ms.`);
+    
+    // Filter out any Chinese characters and CJK/Fullwidth punctuation (hallucinations) from the response text
+    let cleanContent = data.message?.content || '';
+    cleanContent = cleanContent.replace(/[\u4e00-\u9fff\u3400-\u4dbf\u3000-\u303f\uff00-\uffef]/g, '').trim();
+
     res.json({
       success: true,
-      content: data.message?.content || '',
+      content: cleanContent,
       done: data.done || true,
       latency,
     });

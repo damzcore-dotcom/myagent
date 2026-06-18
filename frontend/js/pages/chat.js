@@ -323,9 +323,9 @@ function speakText(text) {
   // Stop any currently playing speech
   window.speechSynthesis.cancel();
 
-  // Clean the text: remove Chinese character hallucinations, markdown symbols, URLs, etc.
+  // Clean the text: remove Chinese character hallucinations (including punctuation), markdown symbols, URLs, etc.
   const cleanText = text
-    .replace(/[\u4e00-\u9fa5]/g, '') // Filter out Chinese characters
+    .replace(/[\u4e00-\u9fff\u3400-\u4dbf\u3000-\u303f\uff00-\uffef]/g, '') // Filter out Chinese characters and CJK/Fullwidth punctuation
     .replace(/```[\s\S]*?```/g, 'blok kode.')
     .replace(/`[^`]+`/g, '')
     .replace(/\*\*(.+?)\*\*/g, '$1')
@@ -618,8 +618,8 @@ async function handleChatResponse(text) {
     const data = await res.json();
     showTyping(false);
     if (data.success && data.content) {
-      // Filter out any Chinese characters (hallucinations) from the response text
-      const cleanContent = data.content.replace(/[\u4e00-\u9fa5]/g, '').trim();
+      // Filter out any Chinese characters and punctuation (hallucinations) from the response text
+      const cleanContent = data.content.replace(/[\u4e00-\u9fff\u3400-\u4dbf\u3000-\u303f\uff00-\uffef]/g, '').trim();
       await appendAgentMessage(cleanContent, activeModel, data.latency || 1000);
       // Speak the agent's response if TTS is enabled
       speakText(cleanContent);
