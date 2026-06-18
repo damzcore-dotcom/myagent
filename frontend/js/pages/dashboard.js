@@ -78,173 +78,179 @@ export function render() {
         </div>
       </div>
 
-      <!-- Stat Cards -->
-      <div class="dashboard-grid">
-        <div class="card agent-status-card">
-          <div class="card-title">Agent Status</div>
-          <div class="status-hero">
-            <div class="status-leds-container">
-              <div class="status-led-item">
-                <span class="status-led led--listening" id="led-listening"></span>
-                <span class="status-led-label">LST</span>
-              </div>
-              <div class="status-led-item">
-                <span class="status-led led--processing" id="led-processing"></span>
-                <span class="status-led-label">PRC</span>
-              </div>
-              <div class="status-led-item">
-                <span class="status-led led--speaking" id="led-speaking"></span>
-                <span class="status-led-label">SPK</span>
-              </div>
-              <div class="status-led-item">
-                <span class="status-led led--error" id="led-error"></span>
-                <span class="status-led-label">ERR</span>
+      <div class="dashboard-layout">
+        <div class="dashboard-column">
+          <!-- Stat Cards -->
+          <div class="dashboard-grid">
+            <div class="card agent-status-card">
+              <div class="card-title">Agent Status</div>
+              <div class="status-hero">
+                <div class="status-leds-container">
+                  <div class="status-led-item">
+                    <span class="status-led led--listening" id="led-listening"></span>
+                    <span class="status-led-label">LST</span>
+                  </div>
+                  <div class="status-led-item">
+                    <span class="status-led led--processing" id="led-processing"></span>
+                    <span class="status-led-label">PRC</span>
+                  </div>
+                  <div class="status-led-item">
+                    <span class="status-led led--speaking" id="led-speaking"></span>
+                    <span class="status-led-label">SPK</span>
+                  </div>
+                  <div class="status-led-item">
+                    <span class="status-led led--error" id="led-error"></span>
+                    <span class="status-led-label">ERR</span>
+                  </div>
+                </div>
+                <div style="flex-grow:1">
+                  <div class="status-hero-text" id="dash-status-text">Ready</div>
+                  <div class="waveform-bars idle" id="dash-waveform">${waveformBars}</div>
+                </div>
               </div>
             </div>
-            <div style="flex-grow:1">
-              <div class="status-hero-text" id="dash-status-text">Ready</div>
-              <div class="waveform-bars idle" id="dash-waveform">${waveformBars}</div>
+            <div class="card stat-card">
+              <div class="card-title">Messages</div>
+              <div class="card-value" id="stat-messages">0</div>
+              <div class="label-sm text-muted" style="margin-top:4px">Processed</div>
+            </div>
+            <div class="card stat-card">
+              <div class="card-title">Documents</div>
+              <div class="card-value" id="stat-documents">0</div>
+              <div class="label-sm text-muted" style="margin-top:4px">Indexed</div>
+            </div>
+            <div class="card stat-card">
+              <div class="card-title">Uptime</div>
+              <div class="card-value" style="font-size:22px" id="stat-uptime">—</div>
+              <div class="label-sm text-muted" style="margin-top:4px">Online</div>
             </div>
           </div>
-        </div>
-        <div class="card stat-card">
-          <div class="card-title">Messages</div>
-          <div class="card-value" id="stat-messages">0</div>
-          <div class="label-sm text-muted" style="margin-top:4px">Processed</div>
-        </div>
-        <div class="card stat-card">
-          <div class="card-title">Documents</div>
-          <div class="card-value" id="stat-documents">0</div>
-          <div class="label-sm text-muted" style="margin-top:4px">Indexed</div>
-        </div>
-        <div class="card stat-card">
-          <div class="card-title">Uptime</div>
-          <div class="card-value" style="font-size:22px" id="stat-uptime">—</div>
-          <div class="label-sm text-muted" style="margin-top:4px">Online</div>
-        </div>
-      </div>
 
-      <!-- Quick Actions -->
-      <div class="quick-actions-grid">
-        <button class="card quick-action-card" id="qa-push-talk">
-          <span class="quick-action-icon">🎙️</span>
-          <span class="quick-action-label">Push to Talk</span>
-          <span class="quick-action-hint">Activate voice input</span>
-        </button>
-        <button class="card quick-action-card" id="qa-add-doc">
-          <span class="quick-action-icon">📄</span>
-          <span class="quick-action-label">Add Document</span>
-          <span class="quick-action-hint">Upload to Knowledge Base</span>
-        </button>
-        <button class="card quick-action-card" id="qa-restart">
-          <span class="quick-action-icon">🔄</span>
-          <span class="quick-action-label">Restart Agent</span>
-          <span class="quick-action-hint">Reload all services</span>
-        </button>
-      </div>
+          <!-- Gauges -->
+          <div class="card-grid-3" style="margin-bottom:var(--space-4)">
+            <div class="card">
+              <div class="card-title">CPU Usage</div>
+              <div class="card-body" style="display:flex;justify-content:center;padding-top:12px">
+                <div id="gauge-cpu"></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">Memory Usage</div>
+              <div class="card-body" style="display:flex;justify-content:center;padding-top:12px">
+                <div id="gauge-ram"></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">Disk Usage</div>
+              <div class="card-body" style="display:flex;justify-content:center;padding-top:12px">
+                <div id="gauge-disk"></div>
+              </div>
+            </div>
+          </div>
 
-      <!-- Gauges -->
-      <div class="card-grid-3" style="margin-bottom:var(--space-4)">
-        <div class="card">
-          <div class="card-title">CPU Usage</div>
-          <div class="card-body" style="display:flex;justify-content:center;padding-top:12px">
-            <div id="gauge-cpu"></div>
+          <!-- Quick Actions -->
+          <div class="quick-actions-grid">
+            <button class="card quick-action-card" id="qa-push-talk">
+              <span class="quick-action-icon">🎙️</span>
+              <span class="quick-action-label">Push to Talk</span>
+              <span class="quick-action-hint">Activate voice input</span>
+            </button>
+            <button class="card quick-action-card" id="qa-add-doc">
+              <span class="quick-action-icon">📄</span>
+              <span class="quick-action-label">Add Document</span>
+              <span class="quick-action-hint">Upload to RAG</span>
+            </button>
+            <button class="card quick-action-card" id="qa-restart">
+              <span class="quick-action-icon">🔄</span>
+              <span class="quick-action-label">Restart Agent</span>
+              <span class="quick-action-hint">Reload all services</span>
+            </button>
           </div>
         </div>
-        <div class="card">
-          <div class="card-title">Memory Usage</div>
-          <div class="card-body" style="display:flex;justify-content:center;padding-top:12px">
-            <div id="gauge-ram"></div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-title">Disk Usage</div>
-          <div class="card-body" style="display:flex;justify-content:center;padding-top:12px">
-            <div id="gauge-disk"></div>
-          </div>
-        </div>
-      </div>
 
-      <!-- Bottom Section -->
-      <div class="bottom-grid">
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">Activity Feed</div>
-            <div style="display:flex;align-items:center;gap:6px">
-              <span class="badge badge--blue" id="activity-count">0 Events</span>
+        <div class="dashboard-column">
+          <!-- Model Info Card -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Model Info</div>
+              <span class="badge badge--green" id="model-status-badge">Active</span>
+            </div>
+            <div class="card-body model-info-grid">
+              <div class="model-info-row">
+                <span class="model-info-label">LLM</span>
+                <span class="model-info-value" id="info-llm">${sysInfo.model}</span>
+              </div>
+              <div class="model-info-row">
+                <span class="model-info-label">Ollama Host</span>
+                <span class="model-info-value" style="color:var(--accent-blue)">${ollamaHostText}</span>
+              </div>
+              <div class="model-info-row">
+                <span class="model-info-label">LLM Advanced</span>
+                <span class="model-info-value">${sysInfo.modelAdvanced}</span>
+              </div>
+              <div class="model-info-row">
+                <span class="model-info-label">Embeddings</span>
+                <span class="model-info-value">${sysInfo.embeddingModel}</span>
+              </div>
+              <div class="model-info-row">
+                <span class="model-info-label">STT Engine</span>
+                <span class="model-info-value">${sysInfo.sttEngine}</span>
+              </div>
+              <div class="model-info-row">
+                <span class="model-info-label">TTS Engine</span>
+                <span class="model-info-value">${sysInfo.ttsEngine}</span>
+              </div>
+              <div class="model-info-row">
+                <span class="model-info-label">Wake Word</span>
+                <span class="model-info-value" style="color:var(--accent-blue)">${sysInfo.wakeWord}</span>
+              </div>
+              <div class="model-info-row">
+                <span class="model-info-label">Phrase</span>
+                <span class="model-info-value" style="color:var(--accent-blue)">"${sysInfo.wakePhrase}"</span>
+              </div>
+              <div class="model-info-row">
+                <span class="model-info-label">Hotkey</span>
+                <span class="model-info-value" style="display:flex;align-items:center;gap:8px">
+                  ${sysInfo.hotkey}
+                  <span class="hotkey-toggle ${hotkeyEnabled ? 'hotkey-toggle--on' : 'hotkey-toggle--off'}" id="hotkey-toggle">${hotkeyEnabled ? 'ON' : 'OFF'}</span>
+                </span>
+              </div>
+              <div class="model-info-row">
+                <span class="model-info-label">Memory ST</span>
+                <span class="model-info-value">${sysInfo.memoryShortTerm}</span>
+              </div>
+              <div class="model-info-row">
+                <span class="model-info-label">Memory LT</span>
+                <span class="model-info-value">${sysInfo.memoryLongTerm}</span>
+              </div>
+              <div class="model-info-row">
+                <span class="model-info-label">Language</span>
+                <span class="model-info-value">${sysInfo.language}</span>
+              </div>
+              <div class="model-info-row">
+                <span class="model-info-label">Privacy</span>
+                <span class="model-info-value" style="color:var(--primary)">100% Private</span>
+              </div>
             </div>
           </div>
-          <div class="activity-toolbar">
-            <button class="activity-filter-btn active" data-filter="all">All</button>
-            <button class="activity-filter-btn" data-filter="error">Error</button>
-            <button class="activity-filter-btn" data-filter="tool">Tool</button>
-            <button class="activity-filter-btn" data-filter="system">System</button>
-            <button class="btn btn-ghost btn-sm" id="activity-clear-btn" style="margin-left:auto;font-size:10px">Clear</button>
-          </div>
-          <div class="card-body activity-feed" id="activity-feed-list">
-            <div class="empty-state" style="padding:24px"><div class="empty-state-text">Loading events...</div></div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">Model Info</div>
-            <span class="badge badge--green" id="model-status-badge">Active</span>
-          </div>
-          <div class="card-body model-info-grid">
-            <div class="model-info-row">
-              <span class="model-info-label">LLM</span>
-              <span class="model-info-value" id="info-llm">${sysInfo.model}</span>
+
+          <!-- Activity Feed Card -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Activity Feed</div>
+              <div style="display:flex;align-items:center;gap:6px">
+                <span class="badge badge--blue" id="activity-count">0 Events</span>
+              </div>
             </div>
-            <div class="model-info-row">
-              <span class="model-info-label">Ollama Host</span>
-              <span class="model-info-value" style="color:var(--accent-blue)">${ollamaHostText}</span>
+            <div class="activity-toolbar">
+              <button class="activity-filter-btn active" data-filter="all">All</button>
+              <button class="activity-filter-btn" data-filter="error">Error</button>
+              <button class="activity-filter-btn" data-filter="tool">Tool</button>
+              <button class="activity-filter-btn" data-filter="system">System</button>
+              <button class="btn btn-ghost btn-sm" id="activity-clear-btn" style="margin-left:auto;font-size:10px">Clear</button>
             </div>
-            <div class="model-info-row">
-              <span class="model-info-label">LLM Advanced</span>
-              <span class="model-info-value">${sysInfo.modelAdvanced}</span>
-            </div>
-            <div class="model-info-row">
-              <span class="model-info-label">Embeddings</span>
-              <span class="model-info-value">${sysInfo.embeddingModel}</span>
-            </div>
-            <div class="model-info-row">
-              <span class="model-info-label">STT Engine</span>
-              <span class="model-info-value">${sysInfo.sttEngine}</span>
-            </div>
-            <div class="model-info-row">
-              <span class="model-info-label">TTS Engine</span>
-              <span class="model-info-value">${sysInfo.ttsEngine}</span>
-            </div>
-            <div class="model-info-row">
-              <span class="model-info-label">Wake Word</span>
-              <span class="model-info-value" style="color:var(--accent-blue)">${sysInfo.wakeWord}</span>
-            </div>
-            <div class="model-info-row">
-              <span class="model-info-label">Phrase</span>
-              <span class="model-info-value" style="color:var(--accent-blue)">"${sysInfo.wakePhrase}"</span>
-            </div>
-            <div class="model-info-row">
-              <span class="model-info-label">Hotkey</span>
-              <span class="model-info-value" style="display:flex;align-items:center;gap:8px">
-                ${sysInfo.hotkey}
-                <span class="hotkey-toggle ${hotkeyEnabled ? 'hotkey-toggle--on' : 'hotkey-toggle--off'}" id="hotkey-toggle">${hotkeyEnabled ? 'ON' : 'OFF'}</span>
-              </span>
-            </div>
-            <div class="model-info-row">
-              <span class="model-info-label">Memory ST</span>
-              <span class="model-info-value">${sysInfo.memoryShortTerm}</span>
-            </div>
-            <div class="model-info-row">
-              <span class="model-info-label">Memory LT</span>
-              <span class="model-info-value">${sysInfo.memoryLongTerm}</span>
-            </div>
-            <div class="model-info-row">
-              <span class="model-info-label">Language</span>
-              <span class="model-info-value">${sysInfo.language}</span>
-            </div>
-            <div class="model-info-row">
-              <span class="model-info-label">Privacy</span>
-              <span class="model-info-value" style="color:var(--primary)">100% Private</span>
+            <div class="card-body activity-feed" id="activity-feed-list">
+              <div class="empty-state" style="padding:24px"><div class="empty-state-text">Loading events...</div></div>
             </div>
           </div>
         </div>

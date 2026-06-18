@@ -76,131 +76,137 @@ export function render() {
         </div>
       </div>
 
-      <!-- Section A: Ollama Connection -->
-      <div class="card settings-section" style="margin-bottom:var(--space-4)">
-        <div class="card-header">
-          <div class="card-title">🔌 Ollama Connection</div>
-          <span class="badge badge--gray" id="ollama-status-badge">Not Tested</span>
-        </div>
-        <div class="settings-form-grid">
-          <div class="settings-field">
-            <label class="settings-label">Host URL</label>
-            <input type="text" class="input" id="ollama-host" value="${settings.ollama.host}" ${!settings.ollama.remoteMode ? 'readonly' : ''}>
+      <div class="settings-layout">
+        <div class="settings-column">
+          <!-- Section A: Ollama Connection -->
+          <div class="card settings-section" style="margin-bottom:var(--space-4)">
+            <div class="card-header">
+              <div class="card-title">🔌 Ollama Connection</div>
+              <span class="badge badge--gray" id="ollama-status-badge">Not Tested</span>
+            </div>
+            <div class="settings-form-grid">
+              <div class="settings-field">
+                <label class="settings-label">Host URL</label>
+                <input type="text" class="input" id="ollama-host" value="${settings.ollama.host}" ${!settings.ollama.remoteMode ? 'readonly' : ''}>
+              </div>
+              <div class="settings-field">
+                <label class="settings-label">Port</label>
+                <input type="number" class="input" id="ollama-port" value="${settings.ollama.port}" min="1" max="65535">
+              </div>
+              <div class="settings-field" style="display:flex;align-items:center;gap:12px;padding-top:20px">
+                <button class="toggle ${settings.ollama.remoteMode ? 'active' : ''}" id="remote-toggle">
+                  <span class="toggle-knob"></span>
+                </button>
+                <span class="settings-label" style="margin:0">Remote Mode</span>
+              </div>
+            </div>
+            <div class="settings-remote-hint" id="remote-section" style="display: ${settings.ollama.remoteMode ? 'block' : 'none'}">
+              <div class="settings-field" style="margin-top:12px">
+                <label class="settings-label">Remote IP</label>
+                <input type="text" class="input" id="remote-ip" value="${settings.ollama.remoteIp || ''}" placeholder="192.168.1.100">
+              </div>
+              <div class="settings-hint">⚠️ Pastikan OLLAMA_HOST=0.0.0.0 di server remote</div>
+            </div>
+            <div style="margin-top:var(--space-3)">
+              <button class="btn btn-secondary" id="test-connection-btn">Test Connection</button>
+              <span class="settings-test-result" id="test-result"></span>
+            </div>
           </div>
-          <div class="settings-field">
-            <label class="settings-label">Port</label>
-            <input type="number" class="input" id="ollama-port" value="${settings.ollama.port}" min="1" max="65535">
-          </div>
-          <div class="settings-field" style="display:flex;align-items:center;gap:12px;padding-top:20px">
-            <button class="toggle ${settings.ollama.remoteMode ? 'active' : ''}" id="remote-toggle">
-              <span class="toggle-knob"></span>
-            </button>
-            <span class="settings-label" style="margin:0">Remote Mode</span>
-          </div>
-        </div>
-        <div class="settings-remote-hint" id="remote-section" style="display: ${settings.ollama.remoteMode ? 'block' : 'none'}">
-          <div class="settings-field" style="margin-top:12px">
-            <label class="settings-label">Remote IP</label>
-            <input type="text" class="input" id="remote-ip" value="${settings.ollama.remoteIp || ''}" placeholder="192.168.1.100">
-          </div>
-          <div class="settings-hint">⚠️ Pastikan OLLAMA_HOST=0.0.0.0 di server remote</div>
-        </div>
-        <div style="margin-top:var(--space-3)">
-          <button class="btn btn-secondary" id="test-connection-btn">Test Connection</button>
-          <span class="settings-test-result" id="test-result"></span>
-        </div>
-      </div>
 
-      <!-- Section B: Model Selection -->
-      <div class="card settings-section" style="margin-bottom:var(--space-4)">
-        <div class="card-header">
-          <div class="card-title">🧠 Model Selection</div>
-          <div style="display:flex;gap:8px">
-            <button class="btn btn-ghost btn-sm" id="refresh-models-btn">Refresh List</button>
-            <button class="btn btn-primary btn-sm" id="apply-model-btn" disabled>Apply Model</button>
-          </div>
-        </div>
-        <div class="models-grid" id="models-grid">
-          ${renderModelCards()}
-        </div>
-        <div class="divider"></div>
-        <div class="pull-model-section" style="margin-top:var(--space-3); display:flex; gap:12px; align-items:center; flex-wrap:wrap">
-          <input type="text" class="input" id="pull-model-input" placeholder="Enter model name to pull (e.g. qwen2.5:1.5b)" style="max-width:280px">
-          <button class="btn btn-secondary btn-sm" id="pull-model-btn">Pull Model</button>
-          <div class="progress-bar-container hidden" id="pull-progress-container" style="display:flex; flex-direction:column; gap:4px; min-width:180px">
-            <div class="label-sm text-muted" id="pull-progress-text" style="font-size:10px">Downloading... 0%</div>
-            <div style="width:100%; height:6px; background:var(--surface-container); border-radius:3px; overflow:hidden">
-              <div id="pull-progress-bar" style="width:0%; height:100%; background:var(--primary); transition:width 0.2s ease"></div>
+          <!-- Section B: Model Selection -->
+          <div class="card settings-section" style="margin-bottom:var(--space-4)">
+            <div class="card-header">
+              <div class="card-title">🧠 Model Selection</div>
+              <div style="display:flex;gap:8px">
+                <button class="btn btn-ghost btn-sm" id="refresh-models-btn">Refresh List</button>
+                <button class="btn btn-primary btn-sm" id="apply-model-btn" disabled>Apply Model</button>
+              </div>
+            </div>
+            <div class="models-grid" id="models-grid">
+              ${renderModelCards()}
+            </div>
+            <div class="divider"></div>
+            <div class="pull-model-section" style="margin-top:var(--space-3); display:flex; gap:12px; align-items:center; flex-wrap:wrap">
+              <input type="text" class="input" id="pull-model-input" placeholder="Enter model name to pull (e.g. qwen2.5:1.5b)" style="max-width:280px">
+              <button class="btn btn-secondary btn-sm" id="pull-model-btn">Pull Model</button>
+              <div class="progress-bar-container hidden" id="pull-progress-container" style="display:flex; flex-direction:column; gap:4px; min-width:180px">
+                <div class="label-sm text-muted" id="pull-progress-text" style="font-size:10px">Downloading... 0%</div>
+                <div style="width:100%; height:6px; background:var(--surface-container); border-radius:3px; overflow:hidden">
+                  <div id="pull-progress-bar" style="width:0%; height:100%; background:var(--primary); transition:width 0.2s ease"></div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Section C: STT / TTS -->
-      <div class="card settings-section" style="margin-bottom:var(--space-4)">
-        <div class="card-header">
-          <div class="card-title">🎤 STT / TTS Settings</div>
-        </div>
-        <div class="settings-form-grid">
-          <div class="settings-field">
-            <label class="settings-label">Whisper Model Size</label>
-            <select class="input" id="stt-model-size">
-              ${['tiny', 'base', 'small', 'medium'].map(s => `<option value="${s}" ${settings.stt.modelSize === s ? 'selected' : ''}>${s}</option>`).join('')}
-            </select>
+        <div class="settings-column">
+          <!-- Section C: STT / TTS -->
+          <div class="card settings-section" style="margin-bottom:var(--space-4)">
+            <div class="card-header">
+              <div class="card-title">🎤 STT / TTS Settings</div>
+            </div>
+            <div class="settings-form-grid">
+              <div class="settings-field">
+                <label class="settings-label">Whisper Model Size</label>
+                <select class="input" id="stt-model-size">
+                  ${['tiny', 'base', 'small', 'medium'].map(s => `<option value="${s}" ${settings.stt.modelSize === s ? 'selected' : ''}>${s}</option>`).join('')}
+                </select>
+              </div>
+              <div class="settings-field">
+                <label class="settings-label">STT Language</label>
+                <select class="input" id="stt-language">
+                  ${['Bahasa Indonesia', 'English', 'Auto'].map(l => `<option value="${l}" ${settings.stt.language === l ? 'selected' : ''}>${l}</option>`).join('')}
+                </select>
+              </div>
+              <div class="settings-field">
+                <label class="settings-label">TTS Voice</label>
+                <select class="input" id="tts-voice">
+                  ${[
+                    { v: 'id_ID-male-medium', l: 'ID - Argana Medium' },
+                    { v: 'id_ID-female-medium', l: 'ID - Siti Medium' },
+                    { v: 'en_US-ryan-high', l: 'EN - Ryan High' },
+                    { v: 'en_US-lessac-medium', l: 'EN - Lessac Medium' },
+                  ].map(o => `<option value="${o.v}" ${settings.tts.voice === o.v ? 'selected' : ''}>${o.l}</option>`).join('')}
+                </select>
+              </div>
+              <div class="settings-field">
+                <label class="settings-label">TTS Speed: <span id="tts-speed-value">${settings.tts.speed}x</span></label>
+                <input type="range" class="settings-slider" id="tts-speed" min="0.5" max="2.0" step="0.1" value="${settings.tts.speed}">
+              </div>
+            </div>
           </div>
-          <div class="settings-field">
-            <label class="settings-label">STT Language</label>
-            <select class="input" id="stt-language">
-              ${['Bahasa Indonesia', 'English', 'Auto'].map(l => `<option value="${l}" ${settings.stt.language === l ? 'selected' : ''}>${l}</option>`).join('')}
-            </select>
-          </div>
-          <div class="settings-field">
-            <label class="settings-label">TTS Voice</label>
-            <select class="input" id="tts-voice">
-              ${[
-                { v: 'id_ID-male-medium', l: 'ID - Argana Medium' },
-                { v: 'id_ID-female-medium', l: 'ID - Siti Medium' },
-                { v: 'en_US-ryan-high', l: 'EN - Ryan High' },
-                { v: 'en_US-lessac-medium', l: 'EN - Lessac Medium' },
-              ].map(o => `<option value="${o.v}" ${settings.tts.voice === o.v ? 'selected' : ''}>${o.l}</option>`).join('')}
-            </select>
-          </div>
-          <div class="settings-field">
-            <label class="settings-label">TTS Speed: <span id="tts-speed-value">${settings.tts.speed}x</span></label>
-            <input type="range" class="settings-slider" id="tts-speed" min="0.5" max="2.0" step="0.1" value="${settings.tts.speed}">
-          </div>
-        </div>
-      </div>
 
-      <!-- Section D: Agent Settings -->
-      <div class="card settings-section">
-        <div class="card-header">
-          <div class="card-title">⚙️ Agent Settings</div>
-        </div>
-        <div class="settings-form-grid">
-          <div class="settings-field">
-            <label class="settings-label">Agent Name</label>
-            <input type="text" class="input" id="agent-name" value="${settings.agent.name}">
-          </div>
-          <div class="settings-field">
-            <label class="settings-label">Temperature: <span id="temp-value">${settings.agent.temperature}</span></label>
-            <input type="range" class="settings-slider" id="agent-temp" min="0" max="1" step="0.1" value="${settings.agent.temperature}">
-          </div>
-          <div class="settings-field">
-            <label class="settings-label">Memory Max Turns</label>
-            <input type="number" class="input" id="agent-memory" value="${settings.agent.memoryTurns}" min="1" max="50">
-          </div>
-          <div class="settings-field">
-            <label class="settings-label">Wake Word Phrase</label>
-            <input type="text" class="input" id="agent-wake" value="${settings.agent.wakePhrase}">
-          </div>
-          <div class="settings-field">
-            <label class="settings-label">Wake Sensitivity: <span id="wake-sens-value">${settings.agent.wakeSensitivity}</span></label>
-            <input type="range" class="settings-slider" id="agent-wake-sens" min="0.1" max="1.0" step="0.1" value="${settings.agent.wakeSensitivity}">
-          </div>
-          <div class="settings-field">
-            <label class="settings-label">Hotkey</label>
-            <input type="text" class="input" id="agent-hotkey" value="${settings.agent.hotkey}" readonly style="cursor:pointer" title="Click to capture new hotkey">
+          <!-- Section D: Agent Settings -->
+          <div class="card settings-section">
+            <div class="card-header">
+              <div class="card-title">⚙️ Agent Settings</div>
+            </div>
+            <div class="settings-form-grid">
+              <div class="settings-field">
+                <label class="settings-label">Agent Name</label>
+                <input type="text" class="input" id="agent-name" value="${settings.agent.name}">
+              </div>
+              <div class="settings-field">
+                <label class="settings-label">Temperature: <span id="temp-value">${settings.agent.temperature}</span></label>
+                <input type="range" class="settings-slider" id="agent-temp" min="0" max="1" step="0.1" value="${settings.agent.temperature}">
+              </div>
+              <div class="settings-field">
+                <label class="settings-label">Memory Max Turns</label>
+                <input type="number" class="input" id="agent-memory" value="${settings.agent.memoryTurns}" min="1" max="50">
+              </div>
+              <div class="settings-field">
+                <label class="settings-label">Wake Word Phrase</label>
+                <input type="text" class="input" id="agent-wake" value="${settings.agent.wakePhrase}">
+              </div>
+              <div class="settings-field">
+                <label class="settings-label">Wake Sensitivity: <span id="wake-sens-value">${settings.agent.wakeSensitivity}</span></label>
+                <input type="range" class="settings-slider" id="agent-wake-sens" min="0.1" max="1.0" step="0.1" value="${settings.agent.wakeSensitivity}">
+              </div>
+              <div class="settings-field">
+                <label class="settings-label">Hotkey</label>
+                <input type="text" class="input" id="agent-hotkey" value="${settings.agent.hotkey}" readonly style="cursor:pointer" title="Click to capture new hotkey">
+              </div>
+            </div>
           </div>
         </div>
       </div>

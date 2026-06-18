@@ -31,7 +31,7 @@ if (fs.existsSync(envPath)) {
 }
 
 const PORT = process.env.PORT || 3001;
-const FRONTEND_URL = 'http://localhost:3000';
+const FRONTEND_URL = 'http://localhost:3010';
 
 const serverStartTime = Date.now();
 const logBuffer = [];

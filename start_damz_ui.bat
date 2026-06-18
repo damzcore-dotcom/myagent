@@ -10,11 +10,11 @@ echo  ║           v1.0.0-alpha                   ║
 echo  ╚══════════════════════════════════════════╝
 echo.
 echo  [*] Starting local server...
-echo  [*] URL: http://localhost:3000
+echo  [*] URL: http://localhost:3010
 echo  [*] Press Ctrl+C to stop
 echo.
 
 cd /d "%~dp0frontend"
-npx -y serve . -l 3000 --no-clipboard
+npx -y serve . -l 3010 --no-clipboard
 
 pause
