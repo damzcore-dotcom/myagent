@@ -54,7 +54,7 @@ export function render() {
 
   // Load Ollama Host text
   const savedSettings = localStorage.getItem('damz_settings');
-  let ollamaHostText = 'Local (localhost)';
+  let ollamaHostText = 'Server (localhost)';
   if (savedSettings) {
     try {
       const parsed = JSON.parse(savedSettings);
@@ -243,7 +243,7 @@ export function render() {
             </div>
             <div class="model-info-row">
               <span class="model-info-label">Privacy</span>
-              <span class="model-info-value" style="color:var(--primary)">100% Local</span>
+              <span class="model-info-value" style="color:var(--primary)">100% Private</span>
             </div>
           </div>
         </div>

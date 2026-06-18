@@ -108,9 +108,9 @@ export function render() {
           <div class="login-footer">
             <div class="login-footer-line">
               <span class="login-footer-dot"></span>
-              <span>100% Local · Zero Cloud Leakage</span>
+              <span>Private & Secure · Zero Cloud Leakage</span>
             </div>
-            <div class="login-footer-ascii">━━━ Obsidian Sentinel ━━━</div>
+            <div class="login-footer-ascii">━━━ Damz Agent ━━━</div>
           </div>
         </div>
       </div>
