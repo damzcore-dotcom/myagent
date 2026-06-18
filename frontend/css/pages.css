@@ -369,26 +369,70 @@
 .login-bg {
   position: absolute;
   inset: 0;
-  background: var(--bg-base);
+  background: radial-gradient(circle at 50% 50%, #111622 0%, #07090e 100%);
   overflow: hidden;
 }
 
+/* Animated Neon Sweep Line (Laser Scan) for Dark Mode */
+.login-bg::after {
+  content: '';
+  position: absolute;
+  left: -50%;
+  width: 200%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(0, 243, 255, 0.8), rgba(35, 134, 54, 0.8), transparent);
+  box-shadow: 0 0 12px rgba(0, 243, 255, 0.6), 0 0 24px rgba(35, 134, 54, 0.4);
+  animation: neonScan 8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  z-index: 2;
+  opacity: 0.45;
+}
+
+:root[data-theme="clean"] .login-bg::after {
+  display: none;
+}
+
+@keyframes neonScan {
+  0% { top: -5%; }
+  100% { top: 105%; }
+}
+
+/* 3D Perspective Neon Grid Floor */
 .login-grid-overlay {
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(48,54,61,0.08) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(48,54,61,0.08) 1px, transparent 1px);
-  background-size: 60px 60px;
-  animation: gridDrift 25s linear infinite;
-  opacity: 0.8;
+    linear-gradient(rgba(35, 134, 54, 0.08) 1.5px, transparent 1.5px),
+    linear-gradient(90deg, rgba(35, 134, 54, 0.08) 1.5px, transparent 1.5px);
+  background-size: 50px 50px;
+  transform: perspective(500px) rotateX(60deg) translateY(-30%) scale(1.6);
+  transform-origin: top center;
+  animation: neonGridScroll 15s linear infinite;
+  opacity: 0.7;
   z-index: 1;
+  mask-image: linear-gradient(to bottom, transparent, rgba(0,0,0,1) 25%, rgba(0,0,0,1) 75%, transparent);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, rgba(0,0,0,1) 25%, rgba(0,0,0,1) 75%, transparent);
 }
 
 :root[data-theme="clean"] .login-grid-overlay {
+  transform: none;
   background-image:
     linear-gradient(rgba(212, 74, 0, 0.05) 1px, transparent 1px),
     linear-gradient(90deg, rgba(212, 74, 0, 0.05) 1px, transparent 1px);
+  background-size: 60px 60px;
+  animation: cleanGridDrift 45s linear infinite;
+  opacity: 0.8;
+  mask-image: none;
+  -webkit-mask-image: none;
+}
+
+@keyframes neonGridScroll {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 100px; }
+}
+
+@keyframes cleanGridDrift {
+  0% { background-position: 0 0; }
+  100% { background-position: 60px 60px; }
 }
 
 /* Premium Luminous Ambient Orbs */
@@ -400,6 +444,7 @@
   opacity: 0.85;
   mix-blend-mode: screen;
   z-index: 0;
+  will-change: transform;
 }
 
 :root[data-theme="clean"] .login-glow-orb {
@@ -407,56 +452,83 @@
   filter: blur(120px);
   -webkit-filter: blur(120px);
   opacity: 0.6;
+  will-change: auto;
 }
 
 .login-glow-orb-1 {
-  width: 380px;
-  height: 380px;
-  top: -8%;
-  left: 15%;
-  background: var(--login-orb-1);
-  animation: floatOrb1 22s ease-in-out infinite;
+  width: 450px;
+  height: 450px;
+  top: -10%;
+  left: 10%;
+  background: radial-gradient(circle, rgba(0, 255, 136, 0.22) 0%, rgba(35, 134, 54, 0.05) 60%, transparent 100%);
+  animation: floatOrb1 20s ease-in-out infinite;
 }
 
 .login-glow-orb-2 {
-  width: 440px;
-  height: 440px;
-  bottom: -12%;
-  right: 10%;
-  background: var(--login-orb-2);
-  animation: floatOrb2 26s ease-in-out infinite;
+  width: 500px;
+  height: 500px;
+  bottom: -15%;
+  right: 5%;
+  background: radial-gradient(circle, rgba(0, 119, 255, 0.18) 0%, rgba(88, 166, 255, 0.04) 60%, transparent 100%);
+  animation: floatOrb2 25s ease-in-out infinite;
 }
 
 .login-glow-orb-3 {
-  width: 300px;
-  height: 300px;
-  top: 40%;
-  left: -5%;
-  background: var(--login-orb-3);
+  width: 380px;
+  height: 380px;
+  top: 35%;
+  left: -8%;
+  background: radial-gradient(circle, rgba(189, 0, 255, 0.15) 0%, rgba(162, 201, 255, 0.03) 60%, transparent 100%);
   animation: floatOrb3 18s ease-in-out infinite;
 }
 
+/* Dark Mode Pulse/Breathe Neon Orb Animations */
 @keyframes floatOrb1 {
+  0% { transform: translate(0, 0) scale(1); opacity: 0.8; }
+  50% { transform: translate(80px, 40px) scale(1.15); opacity: 0.95; }
+  100% { transform: translate(0, 0) scale(1); opacity: 0.8; }
+}
+
+@keyframes floatOrb2 {
+  0% { transform: translate(0, 0) scale(1); opacity: 0.75; }
+  50% { transform: translate(-70px, -50px) scale(1.1); opacity: 0.9; }
+  100% { transform: translate(0, 0) scale(1); opacity: 0.75; }
+}
+
+@keyframes floatOrb3 {
+  0% { transform: translate(0, 0) scale(1); opacity: 0.7; }
+  50% { transform: translate(50px, -60px) scale(1.2); opacity: 0.85; }
+  100% { transform: translate(0, 0) scale(1); opacity: 0.7; }
+}
+
+/* Clean Mode simple float animations (no neon pulsing) */
+:root[data-theme="clean"] .login-glow-orb-1 {
+  background: var(--login-orb-1);
+  animation: floatOrbClean1 22s ease-in-out infinite;
+}
+:root[data-theme="clean"] .login-glow-orb-2 {
+  background: var(--login-orb-2);
+  animation: floatOrbClean2 26s ease-in-out infinite;
+}
+:root[data-theme="clean"] .login-glow-orb-3 {
+  background: var(--login-orb-3);
+  animation: floatOrbClean3 18s ease-in-out infinite;
+}
+
+@keyframes floatOrbClean1 {
   0% { transform: translate(0, 0) scale(1); }
   50% { transform: translate(60px, 40px) scale(1.1); }
   100% { transform: translate(0, 0) scale(1); }
 }
-
-@keyframes floatOrb2 {
+@keyframes floatOrbClean2 {
   0% { transform: translate(0, 0) scale(1); }
   50% { transform: translate(-50px, -60px) scale(0.9); }
   100% { transform: translate(0, 0) scale(1); }
 }
-
-@keyframes floatOrb3 {
+@keyframes floatOrbClean3 {
   0% { transform: translate(0, 0) scale(1); }
   50% { transform: translate(40px, -40px) scale(1.15); }
   100% { transform: translate(0, 0) scale(1); }
-}
-
-@keyframes gridDrift {
-  0% { transform: translate(0, 0); }
-  100% { transform: translate(60px, 60px); }
 }
 
 .login-container {
@@ -474,16 +546,34 @@
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: var(--radius-lg);
   padding: var(--space-8);
-  animation: fadeIn 0.5s ease, slideUp 0.5s ease;
+  animation: fadeIn 0.5s ease, slideUp 0.5s ease, cardNeonGlow 8s ease-in-out infinite;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4), 
+              0 0 25px rgba(35, 134, 54, 0.08), 
+              0 0 50px rgba(88, 166, 255, 0.05);
+}
+
+@keyframes cardNeonGlow {
+  0%, 100% {
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4), 
+                0 0 25px rgba(35, 134, 54, 0.08), 
+                0 0 50px rgba(88, 166, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.06);
+  }
+  50% {
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.45), 
+                0 0 40px rgba(0, 255, 136, 0.2), 
+                0 0 75px rgba(0, 119, 255, 0.15);
+    border-color: rgba(0, 255, 136, 0.2);
+  }
 }
 
 :root[data-theme="clean"] .login-card {
   background: rgba(255, 255, 255, 0.55);
   border: 1px solid rgba(212, 74, 0, 0.08);
   box-shadow: 0 15px 35px rgba(212, 74, 0, 0.06), 0 5px 15px rgba(0, 0, 0, 0.03);
+  animation: fadeIn 0.5s ease, slideUp 0.5s ease;
 }
 
 .login-card::before {
@@ -516,7 +606,22 @@
   align-items: center;
   justify-content: center;
   margin-bottom: var(--space-3);
-  box-shadow: 0 0 20px var(--primary-glow-weak);
+  box-shadow: 0 0 15px rgba(35, 134, 54, 0.4);
+  animation: logoIconGlow 8s ease-in-out infinite;
+}
+
+@keyframes logoIconGlow {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(35, 134, 54, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(0, 255, 136, 0.6), 0 0 10px rgba(0, 119, 255, 0.4);
+  }
+}
+
+:root[data-theme="clean"] .login-logo-icon {
+  box-shadow: none;
+  animation: none;
 }
 
 .login-logo-icon svg {
@@ -531,6 +636,22 @@
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: 0.08em;
+  text-shadow: 0 0 5px rgba(35, 134, 54, 0.3);
+  animation: logoTextNeon 8s ease-in-out infinite;
+}
+
+@keyframes logoTextNeon {
+  0%, 100% {
+    text-shadow: 0 0 5px rgba(35, 134, 54, 0.3), 0 0 10px rgba(88, 166, 255, 0.1);
+  }
+  50% {
+    text-shadow: 0 0 8px rgba(0, 255, 136, 0.5), 0 0 15px rgba(0, 119, 255, 0.3);
+  }
+}
+
+:root[data-theme="clean"] .login-logo-text {
+  text-shadow: none;
+  animation: none;
 }
 
 .login-logo-sub {
