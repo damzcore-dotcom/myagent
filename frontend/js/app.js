@@ -27,6 +27,50 @@ const routes = {
   settings:   SettingsPage,
 };
 
+// ── Global Fetch Interceptor ─────────────────────────
+// Automatically attaches cookies and Bearer token for all requests to the backend API.
+const originalFetch = window.fetch;
+window.fetch = function (url, options = {}) {
+  const urlStr = typeof url === 'string' ? url : (url instanceof URL ? url.toString() : '');
+  
+  if (urlStr.includes('/api/')) {
+    options.credentials = 'include';
+    
+    try {
+      const session = localStorage.getItem('damz_session');
+      if (session) {
+        const parsed = JSON.parse(session);
+        if (parsed.token) {
+          options.headers = options.headers || {};
+          if (options.headers instanceof Headers) {
+            options.headers.set('Authorization', `Bearer ${parsed.token}`);
+          } else if (Array.isArray(options.headers)) {
+            const authExists = options.headers.some(h => h[0].toLowerCase() === 'authorization');
+            if (!authExists) {
+              options.headers.push(['Authorization', `Bearer ${parsed.token}`]);
+            }
+          } else {
+            options.headers['Authorization'] = `Bearer ${parsed.token}`;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[FETCH INTERCEPTOR] Failed to append auth header:', e.message);
+    }
+  }
+  
+  return originalFetch(url, options).then(response => {
+    if (response.status === 401 && !urlStr.includes('/api/auth/sign-in') && !urlStr.includes('/api/auth/sign-up')) {
+      console.warn('[AUTH GUARD] Session invalid or expired (401). Force logging out...');
+      localStorage.removeItem('damz_session');
+      if (typeof showLogin === 'function' && currentPageName !== 'login') {
+        showLogin();
+      }
+    }
+    return response;
+  });
+};
+
 let currentPage = null;
 let currentPageName = null;
 let statusInterval = null;
@@ -266,6 +310,18 @@ function init() {
   // Check auth and show login or app
   if (checkAuth()) {
     showApp();
+    
+    // Background validation of session token on startup
+    fetch('http://127.0.0.1:3001/api/auth/get-session')
+      .then(res => {
+        if (!res.ok) {
+          localStorage.removeItem('damz_session');
+          showLogin();
+        }
+      })
+      .catch(() => {
+        // Keep local session active if server is unreachable/offline
+      });
   } else {
     showLogin();
   }

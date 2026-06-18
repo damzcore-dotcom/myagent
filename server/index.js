@@ -84,6 +84,10 @@ const jsonAdapter = () => createAdapterFactory({
     create: async ({ model, data }) => {
       const db = readDB();
       if (!db[model]) db[model] = [];
+      if (model === 'session') {
+        // Enforce Single Session Policy: delete all other sessions for this user ID
+        db[model] = db[model].filter(s => s.userId !== data.userId);
+      }
       db[model].push(data);
       writeDB(db);
       return data;
@@ -190,6 +194,40 @@ app.use(cors({
 }));
 
 app.use(express.json());
+
+// ── Authentication Middleware ────────────────────────
+async function requireAuth(req, res, next) {
+  try {
+    const headers = new Headers();
+    Object.entries(req.headers).forEach(([key, value]) => {
+      if (value) headers.set(key, Array.isArray(value) ? value.join(', ') : value);
+    });
+
+    const session = await auth.api.getSession({
+      headers
+    });
+
+    if (!session) {
+      return res.status(401).json({ error: 'Unauthorized: Sesi tidak valid atau telah kedaluwarsa.' });
+    }
+
+    req.user = session.user;
+    req.session = session.session;
+    next();
+  } catch (err) {
+    console.error('[AUTH MIDDLEWARE ERROR]', err.message);
+    res.status(401).json({ error: 'Unauthorized: Gagal memvalidasi sesi.' });
+  }
+}
+
+// Global API Auth Guard
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api/auth') || req.path === '/api/health') {
+    return next();
+  }
+  return requireAuth(req, res, next);
+});
+
 
 // ── Better Auth Handler ──────────────────────────────
 // Mount better-auth at /api/auth/*
