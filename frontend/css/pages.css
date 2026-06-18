@@ -1015,6 +1015,15 @@
     gap: var(--space-3) !important;
   }
 
+  /* Disable shadows and hover transitions/transforms on mobile devices */
+  .card {
+    box-shadow: none !important;
+  }
+  .card:hover {
+    box-shadow: none !important;
+    transform: none !important;
+  }
+
   /* Dashboard Page */
   .page-dashboard .dashboard-grid {
     grid-template-columns: 1fr !important;
