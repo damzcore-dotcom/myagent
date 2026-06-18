@@ -373,6 +373,10 @@
   overflow: hidden;
 }
 
+:root[data-theme="clean"] .login-bg {
+  background: var(--bg-base);
+}
+
 /* Animated Neon Sweep Line (Laser Scan) for Dark Mode */
 .login-bg::after {
   content: '';
