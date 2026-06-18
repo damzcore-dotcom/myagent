@@ -58,15 +58,15 @@ export function render() {
               <div class="login-fields hidden" id="register-fields">
                 <div class="login-field">
                   <label class="login-label" for="reg-name">Nama Lengkap</label>
-                  <input type="text" class="input" id="reg-name" placeholder="Masukkan nama lengkap Anda" autocomplete="name">
+                  <input type="text" class="input" id="reg-name" placeholder="Masukkan nama lengkap Anda" autocomplete="name" required>
                 </div>
                 <div class="login-field">
                   <label class="login-label" for="reg-email">Email</label>
-                  <input type="email" class="input" id="reg-email" placeholder="Masukkan alamat email" autocomplete="email">
+                  <input type="email" class="input" id="reg-email" placeholder="Masukkan alamat email" autocomplete="email" required>
                 </div>
                 <div class="login-field">
                   <label class="login-label" for="reg-password">Kata Sandi</label>
-                  <input type="password" class="input" id="reg-password" placeholder="Masukkan kata sandi (min. 8 karakter)" autocomplete="new-password">
+                  <input type="password" class="input" id="reg-password" placeholder="Masukkan kata sandi (min. 8 karakter)" autocomplete="new-password" required>
                 </div>
                 <div style="font-size: 11px; color: var(--status-yellow); margin-top: 12px; font-family: var(--font-mono); line-height: 1.4; border: 1px dashed rgba(210,153,34,0.3); padding: 8px; border-radius: var(--radius);">
                   ⚠️ Account anda akan kami tinjau terlebih dahulu, Terimakasih sudah mendaftar
@@ -149,7 +149,7 @@ export function mount(onLogin) {
         const password = $('#login-password').value;
 
         if (!email || !password) {
-          throw new Error('Please fill in all fields');
+          throw new Error('Harap isi semua kolom');
         }
 
         // Try better-auth API
@@ -178,10 +178,10 @@ export function mount(onLogin) {
         const password = $('#reg-password').value;
 
         if (!name || !email || !password) {
-          throw new Error('Please fill in all fields');
+          throw new Error('Harap isi semua kolom');
         }
         if (password.length < 8) {
-          throw new Error('Password must be at least 8 characters');
+          throw new Error('Kata sandi harus terdiri dari minimal 8 karakter');
         }
 
         const res = await fetch('http://127.0.0.1:3001/api/auth/sign-up/email', {
