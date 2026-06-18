@@ -153,6 +153,25 @@ function setupMobileDrawer() {
     overlay.classList.add('hidden');
   };
 
+  // Close button inside sidebar logo area
+  const closeBtn = $('#sidebar-close');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', closeDrawer);
+  }
+
+  // Swipe left to close gesture
+  let touchStartX = 0;
+  let touchEndX = 0;
+  sidebar.addEventListener('touchstart', (e) => {
+    touchStartX = e.changedTouches[0].screenX;
+  }, { passive: true });
+  sidebar.addEventListener('touchend', (e) => {
+    touchEndX = e.changedTouches[0].screenX;
+    if (touchStartX - touchEndX > 50) {
+      closeDrawer();
+    }
+  }, { passive: true });
+
   window.addEventListener('hashchange', closeDrawer);
   
   const navItems = sidebar.querySelectorAll('.sidebar-nav-item');

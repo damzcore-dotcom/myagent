@@ -52,11 +52,19 @@ export function renderSidebar() {
 
   return `
     <div class="sidebar-logo">
-      <div class="sidebar-logo-icon">${ICONS.bot}</div>
-      <div>
-        <div class="sidebar-logo-text">DAMZ AGENT</div>
-        <div class="sidebar-logo-version">v2.0.0</div>
+      <div class="sidebar-logo-content">
+        <div class="sidebar-logo-icon">${ICONS.bot}</div>
+        <div>
+          <div class="sidebar-logo-text">DAMZ AGENT</div>
+          <div class="sidebar-logo-version">v2.0.0</div>
+        </div>
       </div>
+      <button class="sidebar-close-btn" id="sidebar-close" title="Close Menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
     </div>
     <div class="sidebar-section-label">Navigation</div>
     <nav class="sidebar-nav">
