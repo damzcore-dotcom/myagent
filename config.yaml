@@ -14,10 +14,10 @@ stt:
   language: "id"
 
 tts:
-  piper_exe: "C:/DamzAgent/piper/piper.exe"
+  piper_exe: "c:/ADAM/myagent/piper/piper.exe"
   voice_id: "id"
   voices:
-    id: "C:/DamzAgent/piper/voices/id_ID-news_tts-medium.onnx"
+    id: "c:/ADAM/myagent/piper/voices/id_ID-news_tts-medium.onnx"
     en: "C:/DamzAgent/piper/voices/en_US-lessac-medium.onnx"
 
 hotkey: "ctrl+space"
