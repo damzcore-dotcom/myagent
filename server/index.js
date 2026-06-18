@@ -456,13 +456,34 @@ app.post('/api/ollama/chat', async (req, res) => {
   const { model, messages, temperature } = req.body;
   addLog('info', 'LLM', `Mengirim query ke Ollama dengan model: ${model || 'qwen2.5:7b'}...`);
   try {
+    // Read system prompt from config
+    let systemPrompt = "Kamu adalah Damz, asisten AI pribadi yang berjalan 100% lokal. Jawab singkat, jelas, dan santai. SELALU gunakan bahasa Indonesia. JANGAN PERNAH menyertakan karakter, tulisan, huruf Mandarin (China), atau menawarkan ganti bahasa di akhir jawaban Anda. Hindari markdown, bullet point, atau format panjang.";
+    try {
+      const configPath = path.join(__dirname, '..', 'config.yaml');
+      if (fs.existsSync(configPath)) {
+        const content = fs.readFileSync(configPath, 'utf8');
+        const config = parseSimpleYaml(content);
+        if (config.agent && config.agent.system_prompt) {
+          systemPrompt = config.agent.system_prompt;
+        }
+      }
+    } catch (e) {
+      console.warn('[SERVER] Failed to read system prompt from config:', e.message);
+    }
+
+    // Prepend system message for Ollama context
+    const formattedMessages = [
+      { role: 'system', content: systemPrompt },
+      ...(messages || [])
+    ];
+
     const start = Date.now();
     const r = await fetch(`${baseUrl}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: model || 'qwen2.5:7b',
-        messages: messages || [],
+        messages: formattedMessages,
         options: { temperature: temperature || 0.7 },
         stream: false,
       }),

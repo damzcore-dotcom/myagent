@@ -618,9 +618,11 @@ async function handleChatResponse(text) {
     const data = await res.json();
     showTyping(false);
     if (data.success && data.content) {
-      await appendAgentMessage(data.content, activeModel, data.latency || 1000);
+      // Filter out any Chinese characters (hallucinations) from the response text
+      const cleanContent = data.content.replace(/[\u4e00-\u9fa5]/g, '').trim();
+      await appendAgentMessage(cleanContent, activeModel, data.latency || 1000);
       // Speak the agent's response if TTS is enabled
-      speakText(data.content);
+      speakText(cleanContent);
     } else {
       await appendAgentMessage(`[ERROR] Gagal mendapatkan respons dari Ollama: ${data.error || 'Unknown error'}`, activeModel, 0);
     }
