@@ -478,7 +478,7 @@ html, body {
     height: 100vh;
     z-index: 999;
     transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 15px 0 40px rgba(0,0,0,0.6);
+    box-shadow: none;
     background: rgba(10, 14, 20, 0.82) !important;
     backdrop-filter: blur(20px) !important;
     -webkit-backdrop-filter: blur(20px) !important;
