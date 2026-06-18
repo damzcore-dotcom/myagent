@@ -32,7 +32,7 @@ export function render() {
         <!-- Left Column: Pending Approvals and Registered Accounts -->
         <div class="flex flex-col gap-4" style="height: 100%;">
           <!-- Pending Approvals -->
-          <div class="card flex flex-col" style="flex: 1; min-height: 320px;">
+          <div class="card flex flex-col" style="flex: 1; min-height: 200px;">
             <div class="card-header" style="border-bottom: 1px solid var(--border); padding-bottom: var(--space-2); margin-bottom: var(--space-4);">
               <div style="display: flex; align-items: center; gap: 8px;">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -66,7 +66,7 @@ export function render() {
           </div>
 
           <!-- Registered Accounts -->
-          <div class="card flex flex-col" style="flex: 1; min-height: 320px;">
+          <div class="card flex flex-col" style="flex: 1; min-height: 200px;">
             <div class="card-header" style="border-bottom: 1px solid var(--border); padding-bottom: var(--space-2); margin-bottom: var(--space-4);">
               <div style="display: flex; align-items: center; gap: 8px;">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -120,7 +120,7 @@ export function render() {
           </div>
 
           <!-- Active Whitelist Table Card -->
-          <div class="card flex flex-col" style="flex: 1; min-height: 250px;">
+          <div class="card flex flex-col" style="flex: 1; min-height: 150px;">
             <div class="card-header" style="border-bottom: 1px solid var(--border); padding-bottom: var(--space-2); margin-bottom: var(--space-3);">
               <div style="display: flex; align-items: center; gap: 8px;">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -144,7 +144,7 @@ export function render() {
           </div>
 
           <!-- Rejected History Card -->
-          <div class="card flex flex-col" style="flex: 1; min-height: 250px;">
+          <div class="card flex flex-col" style="flex: 1; min-height: 150px;">
             <div class="card-header" style="border-bottom: 1px solid var(--border); padding-bottom: var(--space-2); margin-bottom: var(--space-3);">
               <div style="display: flex; align-items: center; gap: 8px;">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--status-red)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
