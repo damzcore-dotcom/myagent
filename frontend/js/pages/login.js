@@ -5,6 +5,8 @@
 
 import { $, sleep } from '../utils/helpers.js';
 
+let errorTimeout = null;
+
 export function render() {
   return `
     <div class="login-page">
@@ -167,6 +169,10 @@ export function mount(onLogin) {
       errorEl.classList.add('hidden');
       successEl.classList.add('hidden');
       if (strengthContainer) strengthContainer.classList.add('hidden');
+      if (errorTimeout) {
+        clearTimeout(errorTimeout);
+        errorTimeout = null;
+      }
     });
   });
 
@@ -232,6 +238,10 @@ export function mount(onLogin) {
     e.preventDefault();
     errorEl.classList.add('hidden');
     successEl.classList.add('hidden');
+    if (errorTimeout) {
+      clearTimeout(errorTimeout);
+      errorTimeout = null;
+    }
     submitBtn.disabled = true;
     btnText.textContent = currentTab === 'login' ? 'Memproses masuk...' : 'Memproses daftar...';
     spinner.classList.remove('hidden');
@@ -342,6 +352,11 @@ export function mount(onLogin) {
 
       errorEl.textContent = err.message;
       errorEl.classList.remove('hidden');
+
+      errorTimeout = setTimeout(() => {
+        errorEl.classList.add('hidden');
+        errorTimeout = null;
+      }, 5000);
     } finally {
       submitBtn.disabled = false;
       btnText.textContent = currentTab === 'login' ? 'Masuk' : 'Daftar';
@@ -350,7 +365,12 @@ export function mount(onLogin) {
   });
 }
 
-export function unmount() {}
+export function unmount() {
+  if (errorTimeout) {
+    clearTimeout(errorTimeout);
+    errorTimeout = null;
+  }
+}
 
 /** Check if user has a session. */
 export function isAuthenticated() {
