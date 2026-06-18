@@ -266,7 +266,7 @@ export function mount(onLogin) {
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
           const errMsg = data.message || data.error || '';
-          if (res.status === 401 || errMsg.toLowerCase().includes('invalid email or password') || errMsg.toLowerCase().includes('credential')) {
+          if (res.status === 401 || res.status === 403 || errMsg.toLowerCase().includes('invalid email or password') || errMsg.toLowerCase().includes('credential') || errMsg.toLowerCase().includes('allowed_emails')) {
             throw new Error('Email atau Password salah ! Tolong periksa kembali ');
           }
           throw new Error(errMsg || 'Invalid email or password');
