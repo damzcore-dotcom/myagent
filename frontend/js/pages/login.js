@@ -199,12 +199,19 @@ export function mount(onLogin) {
         const data = await res.json();
 
         if (res.status === 202 || data.pending) {
-          successEl.textContent = data.message || 'Account anda akan kami tinjau terlebih dahulu, Terimakasih sudah mendaftar';
+          successEl.textContent = '⚠️ Account anda akan kami tinjau terlebih dahulu, Terimakasih sudah mendaftar';
           successEl.classList.remove('hidden');
           // Clear registration fields
           $('#reg-name').value = '';
           $('#reg-email').value = '';
           $('#reg-password').value = '';
+          
+          // Switch back to login (Masuk) tab
+          currentTab = 'login';
+          tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === 'login'));
+          loginFields.classList.remove('hidden');
+          registerFields.classList.add('hidden');
+          btnText.textContent = 'Masuk';
           return;
         }
 
