@@ -200,21 +200,50 @@ app.use(express.json());
 // ── Authentication Middleware ────────────────────────
 async function requireAuth(req, res, next) {
   try {
-    const headers = new Headers();
-    Object.entries(req.headers).forEach(([key, value]) => {
-      if (value) headers.set(key, Array.isArray(value) ? value.join(', ') : value);
-    });
+    let session = null;
+    let user = null;
 
-    const session = await auth.api.getSession({
-      headers
-    });
+    // 1. Manually check Authorization: Bearer token (highly reliable for SPA / cross-origin API calls)
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7).trim();
+      const db = readDB();
+      const dbSession = db.session.find(s => s.token === token);
+      if (dbSession) {
+        const expiresAt = new Date(dbSession.expiresAt);
+        if (expiresAt > new Date()) {
+          const dbUser = db.user.find(u => u.id === dbSession.userId);
+          if (dbUser) {
+            session = dbSession;
+            user = dbUser;
+          }
+        }
+      }
+    }
 
+    // 2. Fallback to Better Auth session resolver
     if (!session) {
+      const headers = new Headers();
+      Object.entries(req.headers).forEach(([key, value]) => {
+        if (value) headers.set(key, Array.isArray(value) ? value.join(', ') : value);
+      });
+
+      const baSession = await auth.api.getSession({
+        headers
+      });
+
+      if (baSession) {
+        session = baSession.session;
+        user = baSession.user;
+      }
+    }
+
+    if (!session || !user) {
       return res.status(401).json({ error: 'Unauthorized: Sesi tidak valid atau telah kedaluwarsa.' });
     }
 
-    req.user = session.user;
-    req.session = session.session;
+    req.user = user;
+    req.session = session;
     next();
   } catch (err) {
     console.error('[AUTH MIDDLEWARE ERROR]', err.message);
