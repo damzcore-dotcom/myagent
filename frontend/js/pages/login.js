@@ -19,11 +19,16 @@ export function render() {
           <!-- Logo -->
           <div class="login-logo">
             <div class="login-logo-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="9.5" stroke-dasharray="2 3" opacity="0.25"/>
-                <path d="M12 2c0 5.5-4.5 10-10 10 5.5 0 10 4.5 10 10 0-5.5 4.5-10 10-10-5.5 0-10-4.5-10-10z" fill="currentColor" fill-opacity="0.08"/>
-                <path d="M12 6.5c0 3-2.5 5.5-5.5 5.5 3 0 5.5 2.5 5.5 5.5 0-3 2.5-5.5 5.5-5.5-3 0-5.5-2.5-5.5-5.5z" stroke-width="1.5" opacity="0.8"/>
-                <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2l3 3h-6l3-3z" fill="currentColor" fill-opacity="0.2"/>
+                <path d="M12 2v4"/>
+                <polygon points="8 9 11 10 10 12 7 11" fill="currentColor" fill-opacity="0.9"/>
+                <polygon points="16 9 13 10 14 12 17 11" fill="currentColor" fill-opacity="0.9"/>
+                <path d="M5 8h14"/>
+                <path d="M5 8l1.5 6.5L12 18l5.5-3.5L19 8"/>
+                <path d="M9 13.5l3 2 3-2"/>
+                <path d="M10 15.5l2 1.5 2-1.5"/>
+                <path d="M4 6l2 2M20 6l-2 2"/>
               </svg>
             </div>
             <div class="login-logo-text">DAMZ AGENT</div>
