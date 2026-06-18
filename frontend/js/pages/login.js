@@ -40,11 +40,11 @@ export function render() {
               <div class="login-fields" id="login-fields">
                 <div class="login-field">
                   <label class="login-label" for="login-email">Email</label>
-                  <input type="email" class="input" id="login-email" placeholder="agent@damz.local" required autocomplete="email">
+                  <input type="email" class="input" id="login-email" placeholder="Masukkan alamat email" required autocomplete="email">
                 </div>
                 <div class="login-field">
                   <label class="login-label" for="login-password">Kata Sandi</label>
-                  <input type="password" class="input" id="login-password" placeholder="••••••••" required autocomplete="current-password">
+                  <input type="password" class="input" id="login-password" placeholder="Masukkan kata sandi" required autocomplete="current-password">
                 </div>
                 <div class="login-remember">
                   <label class="login-checkbox-label">
@@ -58,15 +58,15 @@ export function render() {
               <div class="login-fields hidden" id="register-fields">
                 <div class="login-field">
                   <label class="login-label" for="reg-name">Nama Lengkap</label>
-                  <input type="text" class="input" id="reg-name" placeholder="Damz" autocomplete="name">
+                  <input type="text" class="input" id="reg-name" placeholder="Masukkan nama lengkap Anda" autocomplete="name">
                 </div>
                 <div class="login-field">
                   <label class="login-label" for="reg-email">Email</label>
-                  <input type="email" class="input" id="reg-email" placeholder="agent@damz.local" autocomplete="email">
+                  <input type="email" class="input" id="reg-email" placeholder="Masukkan alamat email" autocomplete="email">
                 </div>
                 <div class="login-field">
                   <label class="login-label" for="reg-password">Kata Sandi</label>
-                  <input type="password" class="input" id="reg-password" placeholder="Minimal 8 karakter" autocomplete="new-password">
+                  <input type="password" class="input" id="reg-password" placeholder="Masukkan kata sandi (min. 8 karakter)" autocomplete="new-password">
                 </div>
                 <div style="font-size: 11px; color: var(--status-yellow); margin-top: 12px; font-family: var(--font-mono); line-height: 1.4; border: 1px dashed rgba(210,153,34,0.3); padding: 8px; border-radius: var(--radius);">
                   ⚠️ Account anda akan kami tinjau terlebih dahulu, Terimakasih sudah mendaftar
