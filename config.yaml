@@ -3,7 +3,7 @@ agent:
   name: "Damz"
   system_prompt: "Kamu adalah Damz, asisten AI pribadi yang berjalan 100% lokal. Jawab singkat, jelas, dan santai. SELALU gunakan bahasa Indonesia. JANGAN PERNAH menyertakan karakter, tulisan, huruf Mandarin (China), atau menawarkan ganti bahasa di akhir jawaban Anda. Hindari markdown, bullet point, atau format panjang."
   memory_max_turns: 10
-  allowed_emails: "damzcore@gmail.com, udin@gmail.com, udin2@gmail.com"
+  allowed_emails: "damzcore@gmail.com, udin@gmail.com, udin2@gmail.com, test-1781762155987@damz.local, test-reject-1781805061278@test.com, pending-test-1781805068323@test.com, pending-test-1781805103774@test.com, pending-test-1781805141805@test.com, pending-test-1781805156344@test.com, pending-test-1781805172772@test.com, pending-test-1781805183161@test.com, pending-test-1781805208312@test.com"
 
 llm:
   model: "qwen2.5vl:7b"

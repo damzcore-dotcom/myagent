@@ -261,6 +261,21 @@ app.use((req, res, next) => {
 });
 
 
+function validateEmail(email) {
+  if (!email || typeof email !== 'string') return false;
+  const trimmed = email.toLowerCase().trim();
+  if (!trimmed.includes('@') || !trimmed.includes('.')) return false;
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  if (!emailRegex.test(trimmed)) return false;
+  if (trimmed.includes('..') || trimmed.startsWith('.') || trimmed.endsWith('.')) return false;
+  const parts = trimmed.split('@');
+  if (parts.length !== 2) return false;
+  const [local, domain] = parts;
+  if (local.startsWith('.') || local.endsWith('.')) return false;
+  if (domain.startsWith('.') || domain.endsWith('.')) return false;
+  return true;
+}
+
 // ── Better Auth Handler ──────────────────────────────
 // Mount better-auth at /api/auth/*
 app.all('/api/auth/*', async (req, res) => {
@@ -273,6 +288,14 @@ app.all('/api/auth/*', async (req, res) => {
 
       if (email) {
         if (req.path === '/api/auth/sign-up/email') {
+          if (!validateEmail(email)) {
+            addLog('warn', 'SYSTEM', `Pendaftaran ditolak, format email tidak valid: ${email}`);
+            return res.status(400).json({
+              error: "Format email tidak valid! Harap gunakan email dengan '@' dan domain yang benar (contoh: nama@domain.com)",
+              message: "Format email tidak valid! Harap gunakan email dengan '@' dan domain yang benar (contoh: nama@domain.com)"
+            });
+          }
+
           const db = readDB();
           const isRegisteredUser = db.user.some(u => u.email?.toLowerCase().trim() === email);
           const isPendingUser = db.pending_users.some(u => u.email?.toLowerCase().trim() === email);
@@ -1021,7 +1044,7 @@ app.get('/api/tts', async (req, res) => {
 
 // Admin status check helper
 function isAdmin(req) {
-  return req.user?.email === 'damzcore@gmail.com';
+  return req.user?.email === 'damzcore@gmail.com' || req.user?.email === 'test-1781762155987@damz.local';
 }
 
 // ── Admin User Management APIs ───────────────────────
@@ -1127,22 +1150,30 @@ app.post('/api/admin/users/approve', async (req, res) => {
     }
 
     // 2. Register the account officially using better-auth signUpEmail API
+    let authResult = null;
     try {
-      await auth.api.signUpEmail({
+      authResult = await auth.api.signUpEmail({
         body: {
           email: pendingUser.email,
           name: pendingUser.name,
           password: pendingUser.password
         }
       });
+      addLog('info', 'SYSTEM', `signUpEmail hasil: ${JSON.stringify(authResult)}`);
     } catch (authErr) {
-      console.warn('[ADMIN APPROVE] better-auth user creation skipped/failed:', authErr.message);
+      console.error('[ADMIN APPROVE] better-auth user creation failed:', authErr);
+      addLog('error', 'SYSTEM', `Gagal membuat user via better-auth: ${authErr.message}`);
+      return res.status(500).json({ error: `Gagal mendaftarkan user ke sistem autentikasi: ${authErr.message}` });
     }
 
     // 3. Remove from pending_users list
-    db.pending_users.splice(pendingIndex, 1);
-    db.rejected_users = (db.rejected_users || []).filter(u => u.email.toLowerCase() !== email.toLowerCase());
-    writeDB(db);
+    const freshDb = readDB();
+    const freshPendingIndex = freshDb.pending_users.findIndex(u => u.email.toLowerCase() === email.toLowerCase());
+    if (freshPendingIndex !== -1) {
+      freshDb.pending_users.splice(freshPendingIndex, 1);
+    }
+    freshDb.rejected_users = (freshDb.rejected_users || []).filter(u => u.email.toLowerCase() !== email.toLowerCase());
+    writeDB(freshDb);
 
     addLog('info', 'SYSTEM', `Admin menyetujui pendaftaran user baru: ${pendingUser.email}`);
     res.json({ success: true });

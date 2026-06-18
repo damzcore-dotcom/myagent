@@ -299,6 +299,9 @@ export function mount(onLogin) {
         if (!name || !email || !password) {
           throw new Error('Harap isi semua kolom');
         }
+        if (!validateEmail(email)) {
+          throw new Error("Format email tidak valid! Harap gunakan email dengan '@' dan domain yang benar (contoh: nama@domain.com)");
+        }
         if (password.length < 8) {
           throw new Error('Kata sandi harus terdiri dari minimal 8 karakter');
         }
@@ -541,4 +544,19 @@ function showModalAlert(message, callback) {
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) close();
   });
+}
+
+function validateEmail(email) {
+  if (!email || typeof email !== 'string') return false;
+  const trimmed = email.toLowerCase().trim();
+  if (!trimmed.includes('@') || !trimmed.includes('.')) return false;
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  if (!emailRegex.test(trimmed)) return false;
+  if (trimmed.includes('..') || trimmed.startsWith('.') || trimmed.endsWith('.')) return false;
+  const parts = trimmed.split('@');
+  if (parts.length !== 2) return false;
+  const [local, domain] = parts;
+  if (local.startsWith('.') || local.endsWith('.')) return false;
+  if (domain.startsWith('.') || domain.endsWith('.')) return false;
+  return true;
 }
