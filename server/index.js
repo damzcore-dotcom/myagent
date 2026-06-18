@@ -233,6 +233,33 @@ app.use((req, res, next) => {
 // Mount better-auth at /api/auth/*
 app.all('/api/auth/*', async (req, res) => {
   try {
+    // Intercept Sign-Up and Sign-In to enforce email whitelist
+    if (req.method === 'POST' && (req.path === '/api/auth/sign-up/email' || req.path === '/api/auth/sign-in/email')) {
+      const email = req.body?.email?.toLowerCase().trim();
+      if (email) {
+        let allowedEmailsString = '';
+        try {
+          const configPath = path.join(__dirname, '..', 'config.yaml');
+          if (fs.existsSync(configPath)) {
+            const content = fs.readFileSync(configPath, 'utf8');
+            const config = parseSimpleYaml(content);
+            if (config.agent && config.agent.allowed_emails) {
+              allowedEmailsString = config.agent.allowed_emails;
+            }
+          }
+        } catch (e) {
+          console.warn('[AUTH GUARD] Failed to parse config.yaml for allowed_emails:', e.message);
+        }
+
+        if (allowedEmailsString) {
+          const allowed = allowedEmailsString.split(',').map(e => e.trim().toLowerCase());
+          if (!allowed.includes(email)) {
+            addLog('warn', 'SYSTEM', `Akses ditolak untuk email tidak sah: ${email}`);
+            return res.status(403).json({ message: 'Akses ditolak: Email Anda tidak terdaftar dalam daftar izin sistem (allowed_emails).' });
+          }
+        }
+      }
+    }
     // Convert Express req/res to Web API Request/Response
     const url = new URL(req.originalUrl, `http://localhost:${PORT}`);
     const headers = new Headers();
