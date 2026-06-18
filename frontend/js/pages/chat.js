@@ -36,6 +36,8 @@ let analyser = null;
 let animationFrameId = null;
 let stream = null;
 let activeRecordingId = null; // Store currently selected/recorded recordingId
+let sttRetryCount = 0;        // Retry counter for continuous STT auto-restart
+const MAX_STT_RETRIES = 5;    // Max retry attempts before stopping
 
 function handleTtsChange(e) {
   isTtsEnabled = e.detail.enabled;
@@ -1361,6 +1363,7 @@ function initContinuousSpeechRecognition() {
       }
 
       if (finalTranscript.trim()) {
+        sttRetryCount = 0; // Reset retry count on successful transcription
         const timestampStr = formatRecordingTimestamp(recordingDuration * 1000);
         transcriptLines.push({
           timestamp: timestampStr,
@@ -1378,11 +1381,22 @@ function initContinuousSpeechRecognition() {
 
     recognitionContinuous.onend = () => {
       if (recorderState === 'recording') {
-        try {
-          recognitionContinuous.start(); // auto-restart continuous STT
-        } catch (e) {
-          console.warn('[RECORDER] Auto-restart failed:', e);
+        if (sttRetryCount >= MAX_STT_RETRIES) {
+          console.warn(`[RECORDER] STT auto-restart exceeded max retries (${MAX_STT_RETRIES}). Stopping.`);
+          showChatToast('Speech recognition berhenti setelah beberapa kali gagal restart.', 'warning');
+          return;
         }
+        sttRetryCount++;
+        const delay = Math.min(500 * sttRetryCount, 3000); // backoff: 500ms, 1s, 1.5s, 2s, 2.5s
+        setTimeout(() => {
+          if (recorderState === 'recording') {
+            try {
+              recognitionContinuous.start();
+            } catch (e) {
+              console.warn('[RECORDER] Auto-restart failed:', e.message);
+            }
+          }
+        }, delay);
       }
     };
   }
@@ -1487,6 +1501,14 @@ async function startRecordingWorkflow() {
   recordingDuration = 0;
   transcriptLines = [];
   audioChunks = [];
+  sttRetryCount = 0;
+  
+  // Show loading state on start button while requesting mic permission
+  const startBtn = $('#rec-start-btn');
+  if (startBtn) {
+    startBtn.setAttribute('disabled', 'true');
+    startBtn.innerHTML = '<span class="chat-typing-dot"></span><span class="chat-typing-dot"></span><span class="chat-typing-dot"></span> Meminta akses mikrofon...';
+  }
   
   const timerText = $('#rec-timer-display span:last-child');
   if (timerText) timerText.textContent = '00:00:00';
@@ -1502,6 +1524,8 @@ async function startRecordingWorkflow() {
   if (levelContainer) levelContainer.classList.remove('hidden');
   
   $('#rec-start-btn').classList.add('hidden');
+  $('#rec-start-btn').removeAttribute('disabled');
+  $('#rec-start-btn').innerHTML = '<span style="width:10px;height:10px;border-radius:50%;background:red;display:inline-block"></span> Mulai Rekam';
   $('#rec-pause-btn').classList.remove('hidden');
   $('#rec-stop-btn').classList.remove('hidden');
   
@@ -1530,7 +1554,15 @@ async function startRecordingWorkflow() {
     }
     
     stream = await navigator.mediaDevices.getUserMedia(constraints);
-    mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+      ? 'audio/webm;codecs=opus'
+      : MediaRecorder.isTypeSupported('audio/webm')
+        ? 'audio/webm'
+        : MediaRecorder.isTypeSupported('audio/mp4')
+          ? 'audio/mp4'
+          : '';
+    const recorderOptions = mimeType ? { mimeType } : {};
+    mediaRecorder = new MediaRecorder(stream, recorderOptions);
     
     mediaRecorder.ondataavailable = (event) => {
       if (event.data.size > 0) {
@@ -1553,6 +1585,12 @@ async function startRecordingWorkflow() {
   } catch (err) {
     console.error('[RECORDER] Failed to start audio recording:', err);
     showChatToast('Gagal mengakses mikrofon untuk merekam audio.', 'error');
+    // Reset start button state
+    const startBtn = $('#rec-start-btn');
+    if (startBtn) {
+      startBtn.removeAttribute('disabled');
+      startBtn.innerHTML = '<span style="width:10px;height:10px;border-radius:50%;background:red;display:inline-block"></span> Mulai Rekam';
+    }
     stopRecordingWorkflow();
     return;
   }
@@ -1636,7 +1674,9 @@ function resumeRecordingWorkflow() {
   if (recognitionContinuous) {
     try {
       recognitionContinuous.start();
-    } catch(e) {}
+    } catch(e) {
+      console.warn('[RECORDER] Recognition restart failed on resume:', e.message);
+    }
   }
   
   const wrapper = $('.recording-controls-wrapper');
@@ -1660,6 +1700,14 @@ function stopRecordingWorkflow() {
   
   if (stream) {
     stream.getTracks().forEach(track => track.stop());
+    stream = null;
+  }
+  
+  // Close AudioContext to prevent memory leak
+  if (audioContext && audioContext.state !== 'closed') {
+    audioContext.close().catch(() => {});
+    audioContext = null;
+    analyser = null;
   }
   
   $('#rec-start-btn').classList.remove('hidden');
@@ -1901,20 +1949,39 @@ function formatMarkdown(mdText) {
 
 export function unmount() {
   // Clean up Meeting Recorder resources
-  if (timerInterval) clearInterval(timerInterval);
-  if (animationFrameId) cancelAnimationFrame(animationFrameId);
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+  if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }
   if (mediaRecorder && mediaRecorder.state !== 'inactive') {
     try { mediaRecorder.stop(); } catch (e) {}
   }
+  mediaRecorder = null;
   if (recognitionContinuous) {
     try { recognitionContinuous.stop(); } catch (e) {}
+    recognitionContinuous = null;
   }
   if (stream) {
     try {
       stream.getTracks().forEach(track => track.stop());
     } catch (e) {}
+    stream = null;
   }
+  // Close AudioContext
+  if (audioContext && audioContext.state !== 'closed') {
+    audioContext.close().catch(() => {});
+    audioContext = null;
+    analyser = null;
+  }
+  
+  // Reset all recorder state
   recorderState = 'idle';
+  transcriptLines = [];
+  recordingDuration = 0;
+  recordingStartTime = null;
+  generatedMinutes = null;
+  recordingsList = [];
+  activeRecordingId = null;
+  audioChunks = [];
+  sttRetryCount = 0;
 
   isRecording = false;
   if (recognition) {

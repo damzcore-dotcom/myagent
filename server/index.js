@@ -1534,6 +1534,14 @@ app.post('/api/admin/users/whitelist-remove', (req, res) => {
 
 // ── Meeting Recorder API ──────────────────────────────
 
+// Sanitize recordingId to prevent path traversal attacks
+function sanitizeRecordingId(id) {
+  if (!id || typeof id !== 'string') return null;
+  // Only allow REC_ prefix followed by exactly 14 digits
+  if (!/^REC_\d{14}$/.test(id)) return null;
+  return id;
+}
+
 // Helper function to cleanup audio files older than 15 days
 function cleanupOldAudio() {
   try {
@@ -1732,6 +1740,21 @@ async function generateDocxBuffer(title, date, participants, duration, markdownC
 app.post('/api/recorder/save', (req, res) => {
   try {
     const { audio, transcript, meetingInfo } = req.body;
+
+    // Input validation
+    if (audio && typeof audio !== 'string') {
+      return res.status(400).json({ success: false, error: 'Invalid audio format: expected base64 string' });
+    }
+    if (transcript && !Array.isArray(transcript)) {
+      return res.status(400).json({ success: false, error: 'Invalid transcript format: expected array' });
+    }
+    if (transcript && transcript.some(t => typeof t.text !== 'string' || typeof t.timestamp !== 'string')) {
+      return res.status(400).json({ success: false, error: 'Invalid transcript entries: each must have text and timestamp strings' });
+    }
+    if (!transcript || transcript.length === 0) {
+      return res.status(400).json({ success: false, error: 'Transcript kosong, tidak ada yang bisa disimpan' });
+    }
+
     const timestamp = new Date().toISOString().replace(/[-:T.]/g, '').slice(0, 14);
     const recordingId = `REC_${timestamp}`;
     
@@ -1739,23 +1762,26 @@ app.post('/api/recorder/save', (req, res) => {
     fs.mkdirSync(recordingsDir, { recursive: true });
     
     if (audio) {
-      const audioBuffer = Buffer.from(audio.split(',')[1] || audio, 'base64');
-      fs.writeFileSync(path.join(recordingsDir, 'audio.webm'), audioBuffer);
+      try {
+        const base64Data = audio.includes(',') ? audio.split(',')[1] : audio;
+        const audioBuffer = Buffer.from(base64Data, 'base64');
+        fs.writeFileSync(path.join(recordingsDir, 'audio.webm'), audioBuffer);
+      } catch (audioErr) {
+        console.warn('[RECORDER] Failed to decode audio base64, skipping audio save:', audioErr.message);
+      }
     }
     
     let plainTranscript = '';
-    if (transcript && Array.isArray(transcript)) {
-      plainTranscript = transcript.map(line => `[${line.timestamp}] ${line.text}`).join('\n');
-      fs.writeFileSync(path.join(recordingsDir, 'transcript.txt'), plainTranscript, 'utf8');
-      fs.writeFileSync(path.join(recordingsDir, 'transcript.json'), JSON.stringify(transcript, null, 2), 'utf8');
-    }
+    plainTranscript = transcript.map(line => `[${line.timestamp}] ${line.text}`).join('\n');
+    fs.writeFileSync(path.join(recordingsDir, 'transcript.txt'), plainTranscript, 'utf8');
+    fs.writeFileSync(path.join(recordingsDir, 'transcript.json'), JSON.stringify(transcript, null, 2), 'utf8');
     
     const metadata = {
       id: recordingId,
-      title: meetingInfo?.title || 'Rapat Tanpa Judul',
-      date: meetingInfo?.date || new Date().toLocaleDateString('id-ID'),
-      participants: meetingInfo?.participants || '',
-      duration: meetingInfo?.duration || 0,
+      title: (meetingInfo?.title || 'Rapat Tanpa Judul').slice(0, 200),
+      date: (meetingInfo?.date || new Date().toLocaleDateString('id-ID')).slice(0, 100),
+      participants: (meetingInfo?.participants || '').slice(0, 500),
+      duration: Math.max(0, Math.floor(Number(meetingInfo?.duration) || 0)),
       createdAt: new Date().toISOString(),
       hasMinutes: false
     };
@@ -1777,9 +1803,11 @@ app.post('/api/recorder/save', (req, res) => {
 // 2. POST /api/recorder/generate-minutes
 app.post('/api/recorder/generate-minutes', async (req, res) => {
   try {
-    const { recordingId, forceRegenerate } = req.body;
+    const rawId = req.body.recordingId;
+    const forceRegenerate = req.body.forceRegenerate;
+    const recordingId = sanitizeRecordingId(rawId);
     if (!recordingId) {
-      return res.status(400).json({ success: false, error: 'Missing recordingId' });
+      return res.status(400).json({ success: false, error: 'Invalid or missing recordingId' });
     }
     
     const recordingDir = path.join(__dirname, '..', 'rag', 'documents', 'recordings', recordingId);
@@ -1878,7 +1906,10 @@ ${plainTranscript}`;
 // 3. GET /api/recorder/download/:recordingId
 app.get('/api/recorder/download/:recordingId', (req, res) => {
   try {
-    const { recordingId } = req.params;
+    const recordingId = sanitizeRecordingId(req.params.recordingId);
+    if (!recordingId) {
+      return res.status(400).json({ success: false, error: 'Invalid recordingId' });
+    }
     const recordingDir = path.join(__dirname, '..', 'rag', 'documents', 'recordings', recordingId);
     const docxPath = path.join(recordingDir, 'minutes.docx');
     
@@ -1924,7 +1955,9 @@ app.get('/api/recorder/list', (req, res) => {
             // Check if audio file still exists
             metadata.hasAudio = fs.existsSync(path.join(dirPath, 'audio.webm'));
             list.push(metadata);
-          } catch (e) {}
+          } catch (e) {
+            console.warn(`[RECORDER] Failed to parse metadata for ${dirName}:`, e.message);
+          }
         }
       }
     });
@@ -1941,7 +1974,10 @@ app.get('/api/recorder/list', (req, res) => {
 // DELETE /api/recorder/:recordingId
 app.delete('/api/recorder/:recordingId', (req, res) => {
   try {
-    const { recordingId } = req.params;
+    const recordingId = sanitizeRecordingId(req.params.recordingId);
+    if (!recordingId) {
+      return res.status(400).json({ success: false, error: 'Invalid recordingId' });
+    }
     const recordingDir = path.join(__dirname, '..', 'rag', 'documents', 'recordings', recordingId);
     if (fs.existsSync(recordingDir)) {
       fs.rmSync(recordingDir, { recursive: true, force: true });
@@ -1958,9 +1994,9 @@ app.delete('/api/recorder/:recordingId', (req, res) => {
 // 5. POST /api/recorder/save-to-knowledge
 app.post('/api/recorder/save-to-knowledge', (req, res) => {
   try {
-    const { recordingId } = req.body;
+    const recordingId = sanitizeRecordingId(req.body.recordingId);
     if (!recordingId) {
-      return res.status(400).json({ success: false, error: 'Missing recordingId' });
+      return res.status(400).json({ success: false, error: 'Invalid or missing recordingId' });
     }
     
     const recordingDir = path.join(__dirname, '..', 'rag', 'documents', 'recordings', recordingId);
