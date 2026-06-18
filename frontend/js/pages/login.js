@@ -68,9 +68,6 @@ export function render() {
                   <label class="login-label" for="reg-password">Kata Sandi</label>
                   <input type="password" class="input" id="reg-password" placeholder="Masukkan kata sandi (min. 8 karakter)" autocomplete="new-password" required>
                 </div>
-                <div style="font-size: 11px; color: var(--status-yellow); margin-top: 12px; font-family: var(--font-mono); line-height: 1.4; border: 1px dashed rgba(210,153,34,0.3); padding: 8px; border-radius: var(--radius);">
-                  ⚠️ Account anda akan kami tinjau terlebih dahulu, Terimakasih sudah mendaftar
-                </div>
               </div>
             </div>
 
@@ -199,8 +196,8 @@ export function mount(onLogin) {
         const data = await res.json();
 
         if (res.status === 202 || data.pending) {
-          successEl.textContent = '⚠️ Account anda akan kami tinjau terlebih dahulu, Terimakasih sudah mendaftar';
-          successEl.classList.remove('hidden');
+          alert('⚠️ Account anda akan kami tinjau terlebih dahulu, Terimakasih sudah mendaftar');
+          
           // Clear registration fields
           $('#reg-name').value = '';
           $('#reg-email').value = '';
