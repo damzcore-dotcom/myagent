@@ -1,0 +1,88 @@
+/* ============================================================
+   DAMZ AGENT — Design Tokens (Obsidian Sentinel)
+   All colors, typography, spacing, and radius values
+   from the Obsidian Sentinel design system.
+   ============================================================ */
+
+:root {
+  /* ── Surfaces ────────────────────────────────────── */
+  --surface:            #10141a;
+  --surface-dim:        #10141a;
+  --surface-bright:     #353940;
+  --surface-lowest:     #0a0e14;
+  --surface-low:        #181c22;
+  --surface-container:  #1c2026;
+  --surface-high:       #262a31;
+  --surface-highest:    #31353c;
+  --on-surface:         #dfe2eb;
+  --on-surface-variant: #becaba;
+
+  /* ── Semantic Backgrounds ───────────────────────── */
+  --bg-base:            #0d1117;
+  --bg-elevated:        #161b22;
+  --border:             #30363d;
+  --border-active:      #238636;
+
+  /* ── Text ───────────────────────────────────────── */
+  --text-primary:       #e6edf3;
+  --text-muted:         #8b949e;
+
+  /* ── Primary (Green) ────────────────────────────── */
+  --primary:            #7bdb80;
+  --primary-container:  #238636;
+  --on-primary:         #00390e;
+
+  /* ── Secondary ──────────────────────────────────── */
+  --secondary:          #c1c7d0;
+  --secondary-container:#41474f;
+
+  /* ── Tertiary (Blue) ────────────────────────────── */
+  --tertiary:           #a2c9ff;
+  --tertiary-container: #1377cd;
+  --accent-blue:        #58a6ff;
+  --accent-green:       #3fb950;
+
+  /* ── Status ─────────────────────────────────────── */
+  --status-green:       #238636;
+  --status-red:         #f85149;
+  --status-yellow:      #d29922;
+  --accent-red:         #da3633;
+
+  /* ── Error ──────────────────────────────────────── */
+  --error:              #ffb4ab;
+  --error-container:    #93000a;
+
+  /* ── Typography ─────────────────────────────────── */
+  --font-sans:  'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono:  'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+
+  /* ── Spacing (4px base unit) ────────────────────── */
+  --space-1:   4px;
+  --space-2:   8px;
+  --space-3:   12px;
+  --space-4:   16px;
+  --space-5:   20px;
+  --space-6:   24px;
+  --space-8:   32px;
+  --space-10:  40px;
+  --space-12:  48px;
+  --space-16:  64px;
+
+  /* ── Border Radius ──────────────────────────────── */
+  --radius-sm:   2px;
+  --radius:      4px;
+  --radius-md:   6px;
+  --radius-lg:   8px;
+  --radius-xl:   12px;
+  --radius-full: 9999px;
+
+  /* ── Layout ─────────────────────────────────────── */
+  --sidebar-width: 260px;
+  --gutter:        16px;
+  --content-padding: 24px;
+
+  /* ── Transitions ────────────────────────────────── */
+  --transition-fast:   0.12s ease;
+  --transition-normal: 0.2s ease;
+  --transition-slow:   0.35s ease;
+}
