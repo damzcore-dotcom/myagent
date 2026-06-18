@@ -58,14 +58,16 @@ const dbPath = path.join(dataDir, 'damz_auth_db.json');
 function readDB() {
   try {
     if (!fs.existsSync(dbPath)) {
-      const initial = { user: [], session: [], account: [], verification: [] };
+      const initial = { user: [], session: [], account: [], verification: [], pending_users: [] };
       fs.writeFileSync(dbPath, JSON.stringify(initial, null, 2));
       return initial;
     }
-    return JSON.parse(fs.readFileSync(dbPath, 'utf8'));
+    const db = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
+    if (!db.pending_users) db.pending_users = [];
+    return db;
   } catch (err) {
     console.error('[AUTH DB ERROR] Failed to read JSON DB, returning empty schema.', err);
-    return { user: [], session: [], account: [], verification: [] };
+    return { user: [], session: [], account: [], verification: [], pending_users: [] };
   }
 }
 
@@ -233,9 +235,12 @@ app.use((req, res, next) => {
 // Mount better-auth at /api/auth/*
 app.all('/api/auth/*', async (req, res) => {
   try {
-    // Intercept Sign-Up and Sign-In to enforce email whitelist
+    // Intercept Sign-Up and Sign-In to enforce email whitelist / pending approval
     if (req.method === 'POST' && (req.path === '/api/auth/sign-up/email' || req.path === '/api/auth/sign-in/email')) {
       const email = req.body?.email?.toLowerCase().trim();
+      const name = req.body?.name || email?.split('@')[0];
+      const password = req.body?.password;
+
       if (email) {
         let allowedEmailsString = '';
         try {
@@ -251,11 +256,32 @@ app.all('/api/auth/*', async (req, res) => {
           console.warn('[AUTH GUARD] Failed to parse config.yaml for allowed_emails:', e.message);
         }
 
-        if (allowedEmailsString) {
-          const allowed = allowedEmailsString.split(',').map(e => e.trim().toLowerCase());
-          if (!allowed.includes(email)) {
-            addLog('warn', 'SYSTEM', `Akses ditolak untuk email tidak sah: ${email}`);
+        const allowed = allowedEmailsString ? allowedEmailsString.split(',').map(e => e.trim().toLowerCase()) : [];
+        const isWhitelisted = allowed.includes(email);
+
+        if (!isWhitelisted) {
+          if (req.path === '/api/auth/sign-in/email') {
+            addLog('warn', 'SYSTEM', `Akses login ditolak untuk email tidak sah: ${email}`);
             return res.status(403).json({ message: 'Akses ditolak: Email Anda tidak terdaftar dalam daftar izin sistem (allowed_emails).' });
+          }
+
+          if (req.path === '/api/auth/sign-up/email') {
+            const db = readDB();
+            const exists = db.pending_users.find(u => u.email === email);
+            if (!exists) {
+              db.pending_users.push({
+                email,
+                name,
+                password,
+                createdAt: new Date().toISOString()
+              });
+              writeDB(db);
+              addLog('info', 'SYSTEM', `Pendaftaran baru diajukan (Pending Approval): ${email}`);
+            }
+            return res.status(202).json({
+              pending: true,
+              message: 'Account anda akan kami tinjau terlebih dahulu, Terimakasih sudah mendaftar'
+            });
           }
         }
       }
@@ -871,6 +897,229 @@ app.get('/api/tts', async (req, res) => {
 
   } catch (err) {
     addLog('error', 'TTS', `Error sintesis Piper: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin status check helper
+function isAdmin(req) {
+  return req.user?.email === 'damzcore@gmail.com';
+}
+
+// ── Admin User Management APIs ───────────────────────
+
+// 1. Get Users, Whitelist, and Pending requests
+app.get('/api/admin/users', (req, res) => {
+  if (!isAdmin(req)) {
+    return res.status(403).json({ error: 'Akses ditolak: Hanya Super Admin yang dapat mengakses panel ini.' });
+  }
+
+  try {
+    const configPath = path.join(__dirname, '..', 'config.yaml');
+    let allowedEmails = [];
+    if (fs.existsSync(configPath)) {
+      const content = fs.readFileSync(configPath, 'utf8');
+      const config = parseSimpleYaml(content);
+      if (config.agent && config.agent.allowed_emails) {
+        allowedEmails = config.agent.allowed_emails.split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+      }
+    }
+
+    const db = readDB();
+    
+    // Select clean user objects (hide password hashes)
+    const activeUsers = db.user.map(u => ({
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      createdAt: u.createdAt
+    }));
+
+    const pendingUsers = db.pending_users.map(u => ({
+      name: u.name,
+      email: u.email,
+      createdAt: u.createdAt
+    }));
+
+    res.json({
+      success: true,
+      allowed: allowedEmails,
+      users: activeUsers,
+      pending: pendingUsers
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Helper to write whitelist back to config.yaml
+function updateWhitelistInConfig(emails) {
+  const configPath = path.join(__dirname, '..', 'config.yaml');
+  if (fs.existsSync(configPath)) {
+    let content = fs.readFileSync(configPath, 'utf8');
+    const emailsString = emails.join(', ');
+    
+    if (content.includes('allowed_emails:')) {
+      content = content.replace(/allowed_emails:\s*"[^"]*"/, `allowed_emails: "${emailsString}"`);
+    } else {
+      content = content.replace(/(agent:\s*[\s\S]*?)(llm:)/, `$1  allowed_emails: "${emailsString}"\n\n$2`);
+    }
+    fs.writeFileSync(configPath, content);
+  }
+}
+
+// 2. Approve Pending Registration
+app.post('/api/admin/users/approve', async (req, res) => {
+  if (!isAdmin(req)) {
+    return res.status(403).json({ error: 'Akses ditolak.' });
+  }
+
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: 'Missing email' });
+
+  try {
+    const db = readDB();
+    const pendingIndex = db.pending_users.findIndex(u => u.email.toLowerCase() === email.toLowerCase());
+    if (pendingIndex === -1) {
+      return res.status(404).json({ error: 'Permohonan pendaftaran tidak ditemukan.' });
+    }
+
+    const pendingUser = db.pending_users[pendingIndex];
+
+    // 1. Add to allowed_emails list in config.yaml
+    const configPath = path.join(__dirname, '..', 'config.yaml');
+    let allowed = [];
+    if (fs.existsSync(configPath)) {
+      const content = fs.readFileSync(configPath, 'utf8');
+      const config = parseSimpleYaml(content);
+      if (config.agent && config.agent.allowed_emails) {
+        allowed = config.agent.allowed_emails.split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+      }
+    }
+    if (!allowed.includes(pendingUser.email)) {
+      allowed.push(pendingUser.email);
+      updateWhitelistInConfig(allowed);
+    }
+
+    // 2. Register the account officially using better-auth signUpEmail API
+    try {
+      await auth.api.signUpEmail({
+        body: {
+          email: pendingUser.email,
+          name: pendingUser.name,
+          password: pendingUser.password
+        }
+      });
+    } catch (authErr) {
+      console.warn('[ADMIN APPROVE] better-auth user creation skipped/failed:', authErr.message);
+    }
+
+    // 3. Remove from pending_users list
+    db.pending_users.splice(pendingIndex, 1);
+    writeDB(db);
+
+    addLog('info', 'SYSTEM', `Admin menyetujui pendaftaran user baru: ${pendingUser.email}`);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 3. Reject/Delete Pending Registration
+app.post('/api/admin/users/reject', (req, res) => {
+  if (!isAdmin(req)) {
+    return res.status(403).json({ error: 'Akses ditolak.' });
+  }
+
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: 'Missing email' });
+
+  try {
+    const db = readDB();
+    const pendingIndex = db.pending_users.findIndex(u => u.email.toLowerCase() === email.toLowerCase());
+    if (pendingIndex !== -1) {
+      db.pending_users.splice(pendingIndex, 1);
+      writeDB(db);
+      addLog('info', 'SYSTEM', `Admin menolak permohonan pendaftaran: ${email}`);
+      return res.json({ success: true });
+    }
+    res.status(404).json({ error: 'Permohonan pendaftaran tidak ditemukan.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 4. Add email directly to Whitelist
+app.post('/api/admin/users/whitelist-add', (req, res) => {
+  if (!isAdmin(req)) {
+    return res.status(403).json({ error: 'Akses ditolak.' });
+  }
+
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: 'Missing email' });
+
+  try {
+    const emailClean = email.trim().toLowerCase();
+    const configPath = path.join(__dirname, '..', 'config.yaml');
+    let allowed = [];
+    if (fs.existsSync(configPath)) {
+      const content = fs.readFileSync(configPath, 'utf8');
+      const config = parseSimpleYaml(content);
+      if (config.agent && config.agent.allowed_emails) {
+        allowed = config.agent.allowed_emails.split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+      }
+    }
+
+    if (!allowed.includes(emailClean)) {
+      allowed.push(emailClean);
+      updateWhitelistInConfig(allowed);
+      addLog('info', 'SYSTEM', `Admin menambahkan email baru ke whitelist: ${emailClean}`);
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 5. Remove email from Whitelist (and kick active sessions)
+app.post('/api/admin/users/whitelist-remove', (req, res) => {
+  if (!isAdmin(req)) {
+    return res.status(403).json({ error: 'Akses ditolak.' });
+  }
+
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: 'Missing email' });
+
+  try {
+    const emailClean = email.trim().toLowerCase();
+    const configPath = path.join(__dirname, '..', 'config.yaml');
+    let allowed = [];
+    if (fs.existsSync(configPath)) {
+      const content = fs.readFileSync(configPath, 'utf8');
+      const config = parseSimpleYaml(content);
+      if (config.agent && config.agent.allowed_emails) {
+        allowed = config.agent.allowed_emails.split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+      }
+    }
+
+    if (allowed.includes(emailClean)) {
+      allowed = allowed.filter(e => e !== emailClean);
+      updateWhitelistInConfig(allowed);
+      addLog('info', 'SYSTEM', `Admin menghapus email dari whitelist: ${emailClean}`);
+
+      // Kick active sessions for this user from database
+      const db = readDB();
+      const user = db.user.find(u => u.email.toLowerCase() === emailClean);
+      if (user) {
+        db.session = db.session.filter(s => s.userId !== user.id);
+        writeDB(db);
+        addLog('info', 'SYSTEM', `Sesi aktif untuk user ${emailClean} berhasil dicabut.`);
+      }
+    }
+
+    res.json({ success: true });
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });

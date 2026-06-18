@@ -73,6 +73,8 @@ export function render() {
 
             <!-- Error Message -->
             <div class="login-error hidden" id="login-error"></div>
+            <!-- Success Message -->
+            <div class="login-success hidden" id="login-success"></div>
 
             <!-- Submit -->
             <button type="submit" class="btn btn-primary btn-lg login-submit" id="login-submit">
@@ -104,6 +106,7 @@ export function mount(onLogin) {
   const btnText = $('#login-btn-text');
   const spinner = $('#login-spinner');
   const errorEl = $('#login-error');
+  const successEl = $('#login-success');
 
   let currentTab = 'login';
 
@@ -124,6 +127,7 @@ export function mount(onLogin) {
       }
 
       errorEl.classList.add('hidden');
+      successEl.classList.add('hidden');
     });
   });
 
@@ -131,6 +135,7 @@ export function mount(onLogin) {
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     errorEl.classList.add('hidden');
+    successEl.classList.add('hidden');
     submitBtn.disabled = true;
     btnText.textContent = currentTab === 'login' ? 'Signing in...' : 'Creating account...';
     spinner.classList.remove('hidden');
@@ -189,6 +194,17 @@ export function mount(onLogin) {
         }
 
         const data = await res.json();
+
+        if (res.status === 202 || data.pending) {
+          successEl.textContent = data.message || 'Account anda akan kami tinjau terlebih dahulu, Terimakasih sudah mendaftar';
+          successEl.classList.remove('hidden');
+          // Clear registration fields
+          $('#reg-name').value = '';
+          $('#reg-email').value = '';
+          $('#reg-password').value = '';
+          return;
+        }
+
         localStorage.setItem('damz_session', JSON.stringify({
           user: data.user || { email, name },
           token: data.token || 'session',

@@ -15,6 +15,7 @@ import * as VisionPage from './pages/vision.js';
 import * as ToolsPage from './pages/tools.js';
 import * as LogsPage from './pages/logs.js';
 import * as SettingsPage from './pages/settings.js';
+import * as UsersPage from './pages/users.js';
 
 /* ── Route Map ─────────────────────────────────────── */
 const routes = {
@@ -25,6 +26,7 @@ const routes = {
   tools:      ToolsPage,
   logs:       LogsPage,
   settings:   SettingsPage,
+  users:      UsersPage,
 };
 
 // ── Global Fetch Interceptor ─────────────────────────
@@ -254,6 +256,14 @@ function navigate(pageName) {
   if (!checkAuth()) {
     showLogin();
     return;
+  }
+
+  // Admin access control guard
+  if (pageName === 'users') {
+    const currentUser = LoginPage.getCurrentUser();
+    if (currentUser?.email !== 'damzcore@gmail.com') {
+      pageName = 'dashboard';
+    }
   }
 
   // Default to dashboard
