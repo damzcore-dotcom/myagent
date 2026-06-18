@@ -28,11 +28,11 @@ export function render() {
         <button id="users-alert-close" class="btn-ghost" style="border: none; background: transparent; cursor: pointer; color: inherit; font-size: 14px; line-height: 1;">&times;</button>
       </div>
 
-      <div class="card-grid-users">
+      <div class="card-grid-users" style="align-items: stretch;">
         <!-- Left Column: Pending Approvals and Registered Accounts -->
-        <div class="flex flex-col gap-4">
+        <div class="flex flex-col gap-4" style="height: 100%;">
           <!-- Pending Approvals -->
-          <div class="card flex flex-col" style="min-height: 320px;">
+          <div class="card flex flex-col" style="flex: 1; min-height: 320px;">
             <div class="card-header" style="border-bottom: 1px solid var(--border); padding-bottom: var(--space-2); margin-bottom: var(--space-4);">
               <div style="display: flex; align-items: center; gap: 8px;">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -46,7 +46,7 @@ export function render() {
               <span class="badge badge--yellow" id="pending-count-badge">0 Pending</span>
             </div>
 
-            <div class="card-body" style="flex: 1; overflow-y: auto; overflow-x: auto; max-height: 250px;">
+            <div class="card-body" style="flex: 1; overflow-y: auto; overflow-x: auto;">
               <div id="pending-empty-state" class="empty-state">
                 <div class="empty-state-icon" style="font-size: 28px; margin-bottom: 12px;">✔️</div>
                 <div class="empty-state-text">No pending registration requests</div>
@@ -54,10 +54,10 @@ export function render() {
               <table class="data-table hidden" id="pending-table">
                 <thead>
                   <tr>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Requested At</th>
-                    <th style="text-align: right;">Actions</th>
+                    <th style="width: 22%;">Name</th>
+                    <th style="width: 38%;">Email</th>
+                    <th style="width: 22%;">Requested At</th>
+                    <th style="width: 18%; text-align: right;">Actions</th>
                   </tr>
                 </thead>
                 <tbody id="pending-list"></tbody>
@@ -66,7 +66,7 @@ export function render() {
           </div>
 
           <!-- Registered Accounts -->
-          <div class="card flex flex-col" style="min-height: 320px;">
+          <div class="card flex flex-col" style="flex: 1; min-height: 320px;">
             <div class="card-header" style="border-bottom: 1px solid var(--border); padding-bottom: var(--space-2); margin-bottom: var(--space-4);">
               <div style="display: flex; align-items: center; gap: 8px;">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -80,7 +80,7 @@ export function render() {
               <span class="badge badge--green" id="registered-count-badge">0 Users</span>
             </div>
 
-            <div class="card-body" style="flex: 1; overflow-y: auto; overflow-x: auto; max-height: 250px;">
+            <div class="card-body" style="flex: 1; overflow-y: auto; overflow-x: auto;">
               <div id="registered-empty-state" class="empty-state">
                 <div class="empty-state-icon" style="font-size: 28px; margin-bottom: 12px;">👥</div>
                 <div class="empty-state-text">No registered accounts found</div>
@@ -88,9 +88,9 @@ export function render() {
               <table class="data-table hidden" id="registered-table">
                 <thead>
                   <tr>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Registered At</th>
+                    <th style="width: 22%;">Name</th>
+                    <th style="width: 38%;">Email</th>
+                    <th style="width: 40%;">Registered At</th>
                   </tr>
                 </thead>
                 <tbody id="registered-list"></tbody>
@@ -100,11 +100,18 @@ export function render() {
         </div>
 
         <!-- Right Column: Whitelist, Add Manual, and Rejected History -->
-        <div class="flex flex-col gap-4">
+        <div class="flex flex-col gap-4" style="height: 100%;">
           <!-- Add Email to Whitelist Card -->
-          <div class="card">
-            <div class="card-header" style="margin-bottom: var(--space-3);">
-              <h2 class="card-title" style="color: var(--text-primary); font-size: 13px; margin: 0;">Add Email to Whitelist</h2>
+          <div class="card" style="flex: 0 0 auto;">
+            <div class="card-header" style="border-bottom: 1px solid var(--border); padding-bottom: var(--space-2); margin-bottom: var(--space-4);">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                  <line x1="12" y1="11" x2="12" y2="17"/>
+                  <line x1="9" y1="14" x2="15" y2="14"/>
+                </svg>
+                <h2 class="card-title" style="color: var(--text-primary); font-size: 14px; margin: 0;">Add Email to Whitelist</h2>
+              </div>
             </div>
             <form id="add-whitelist-form" class="input-group">
               <input type="email" class="input" id="whitelist-email-input" placeholder="user@domain.com" required autocomplete="off">
@@ -113,7 +120,7 @@ export function render() {
           </div>
 
           <!-- Active Whitelist Table Card -->
-          <div class="card flex flex-col" style="min-height: 250px;">
+          <div class="card flex flex-col" style="flex: 1; min-height: 250px;">
             <div class="card-header" style="border-bottom: 1px solid var(--border); padding-bottom: var(--space-2); margin-bottom: var(--space-3);">
               <div style="display: flex; align-items: center; gap: 8px;">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -123,12 +130,12 @@ export function render() {
               </div>
               <span class="badge badge--green" id="whitelist-count-badge">0 Allowed</span>
             </div>
-            <div class="card-body" style="flex: 1; overflow-y: auto; overflow-x: auto; max-height: 180px;">
+            <div class="card-body" style="flex: 1; overflow-y: auto; overflow-x: auto;">
               <table class="data-table" id="whitelist-table">
                 <thead>
                   <tr>
-                    <th>Email Address</th>
-                    <th style="text-align: right;">Action</th>
+                    <th style="width: 75%;">Email Address</th>
+                    <th style="width: 25%; text-align: right;">Action</th>
                   </tr>
                 </thead>
                 <tbody id="whitelist-list"></tbody>
@@ -137,7 +144,7 @@ export function render() {
           </div>
 
           <!-- Rejected History Card -->
-          <div class="card flex flex-col" style="min-height: 250px;">
+          <div class="card flex flex-col" style="flex: 1; min-height: 250px;">
             <div class="card-header" style="border-bottom: 1px solid var(--border); padding-bottom: var(--space-2); margin-bottom: var(--space-3);">
               <div style="display: flex; align-items: center; gap: 8px;">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--status-red)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -149,7 +156,7 @@ export function render() {
               </div>
               <span class="badge badge--red" id="rejected-count-badge">0 Rejected</span>
             </div>
-            <div class="card-body" style="flex: 1; overflow-y: auto; overflow-x: auto; max-height: 180px;">
+            <div class="card-body" style="flex: 1; overflow-y: auto; overflow-x: auto;">
               <div id="rejected-empty-state" class="empty-state">
                 <div class="empty-state-icon" style="font-size: 24px; margin-bottom: 8px;">🚫</div>
                 <div class="empty-state-text" style="font-size: 12px;">No rejected history</div>
@@ -157,8 +164,8 @@ export function render() {
               <table class="data-table hidden" id="rejected-table">
                 <thead>
                   <tr>
-                    <th>Email Address</th>
-                    <th style="text-align: right;">Action</th>
+                    <th style="width: 75%;">Email Address</th>
+                    <th style="width: 25%; text-align: right;">Action</th>
                   </tr>
                 </thead>
                 <tbody id="rejected-list"></tbody>

@@ -1127,6 +1127,11 @@
   display: grid;
   grid-template-columns: 1.4fr 1fr;
   gap: var(--space-4);
+  align-items: stretch;
+}
+
+.card-grid-users > .flex-col {
+  height: 100%;
 }
 
 /* ── Mobile Responsive Page Specifics ───────────────── */
@@ -1138,6 +1143,10 @@
   .card-grid-users {
     grid-template-columns: 1fr !important;
     gap: var(--space-3) !important;
+  }
+
+  .card-grid-users > .flex-col {
+    height: auto !important;
   }
 
   /* Disable shadows and hover transitions/transforms on mobile devices */
