@@ -20,10 +20,10 @@ export function render() {
           <div class="login-logo">
             <div class="login-logo-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="9" stroke-dasharray="3 3" opacity="0.4"/>
-                <circle cx="12" cy="12" r="6" opacity="0.7"/>
-                <circle cx="12" cy="12" r="3" fill="currentColor"/>
-                <path d="M12 3v18M16 6v12M8 6v12M20 10v4M4 10v4" opacity="0.85"/>
+                <circle cx="12" cy="12" r="9.5" stroke-dasharray="2 3" opacity="0.25"/>
+                <path d="M12 2c0 5.5-4.5 10-10 10 5.5 0 10 4.5 10 10 0-5.5 4.5-10 10-10-5.5 0-10-4.5-10-10z" fill="currentColor" fill-opacity="0.08"/>
+                <path d="M12 6.5c0 3-2.5 5.5-5.5 5.5 3 0 5.5 2.5 5.5 5.5 0-3 2.5-5.5 5.5-5.5-3 0-5.5-2.5-5.5-5.5z" stroke-width="1.5" opacity="0.8"/>
+                <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
               </svg>
             </div>
             <div class="login-logo-text">DAMZ AGENT</div>
