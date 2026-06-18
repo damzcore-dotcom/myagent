@@ -254,7 +254,7 @@ export function mount(onLogin) {
         const data = await res.json();
         localStorage.setItem('damz_session', JSON.stringify({
           user: data.user || { email, name: email.split('@')[0] },
-          token: data.token || 'session',
+          token: data.session?.token || data.token || 'session',
           loggedInAt: new Date().toISOString(),
         }));
 
@@ -309,7 +309,7 @@ export function mount(onLogin) {
 
         localStorage.setItem('damz_session', JSON.stringify({
           user: data.user || { email, name },
-          token: data.token || 'session',
+          token: data.session?.token || data.token || 'session',
           loggedInAt: new Date().toISOString(),
         }));
       }
