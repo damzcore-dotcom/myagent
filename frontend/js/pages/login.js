@@ -58,15 +58,16 @@ export function render() {
               <div class="login-fields hidden" id="register-fields">
                 <div class="login-field">
                   <label class="login-label" for="reg-name">Nama Lengkap</label>
-                  <input type="text" class="input" id="reg-name" placeholder="Masukkan nama lengkap Anda" autocomplete="name" required>
+                  <input type="text" class="input" id="reg-name" placeholder="Masukkan nama lengkap Anda" autocomplete="name">
                 </div>
                 <div class="login-field">
                   <label class="login-label" for="reg-email">Email</label>
-                  <input type="email" class="input" id="reg-email" placeholder="Masukkan alamat email" autocomplete="email" required>
+                  <input type="email" class="input" id="reg-email" placeholder="Masukkan alamat email" autocomplete="email">
                 </div>
                 <div class="login-field">
                   <label class="login-label" for="reg-password">Kata Sandi</label>
-                  <input type="password" class="input" id="reg-password" placeholder="Masukkan kata sandi (min. 8 karakter)" autocomplete="one-time-code" required>
+                  <input type="password" class="input" id="reg-password" placeholder="Masukkan kata sandi (min. 8 karakter)" autocomplete="one-time-code">
+                </div>
                   <!-- Password Strength Indicator -->
                   <div id="password-strength-container" class="hidden" style="margin-top: 8px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
@@ -79,7 +80,6 @@ export function render() {
                       <div class="strength-bar-segment" style="flex: 1; background: var(--border); border-radius: var(--radius); transition: background 0.3s;"></div>
                     </div>
                   </div>
-                </div>
               </div>
             </div>
 
@@ -120,6 +120,13 @@ export function mount(onLogin) {
   const errorEl = $('#login-error');
   const successEl = $('#login-success');
 
+  // Input references for dynamic validation
+  const loginEmail = $('#login-email');
+  const loginPassword = $('#login-password');
+  const regName = $('#reg-name');
+  const regEmail = $('#reg-email');
+  const regPassword = $('#reg-password');
+
   let currentTab = 'login';
 
   // Tab switching
@@ -132,10 +139,22 @@ export function mount(onLogin) {
         loginFields.classList.remove('hidden');
         registerFields.classList.add('hidden');
         btnText.textContent = 'Masuk';
+
+        if (loginEmail) loginEmail.required = true;
+        if (loginPassword) loginPassword.required = true;
+        if (regName) regName.required = false;
+        if (regEmail) regEmail.required = false;
+        if (regPassword) regPassword.required = false;
       } else {
         loginFields.classList.add('hidden');
         registerFields.classList.remove('hidden');
         btnText.textContent = 'Daftar';
+
+        if (loginEmail) loginEmail.required = false;
+        if (loginPassword) loginPassword.required = false;
+        if (regName) regName.required = true;
+        if (regEmail) regEmail.required = true;
+        if (regPassword) regPassword.required = true;
       }
 
       errorEl.classList.add('hidden');
@@ -279,6 +298,12 @@ export function mount(onLogin) {
           loginFields.classList.remove('hidden');
           registerFields.classList.add('hidden');
           btnText.textContent = 'Masuk';
+
+          if (loginEmail) loginEmail.required = true;
+          if (loginPassword) loginPassword.required = true;
+          if (regName) regName.required = false;
+          if (regEmail) regEmail.required = false;
+          if (regPassword) regPassword.required = false;
           return;
         }
 
