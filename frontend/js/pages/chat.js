@@ -364,33 +364,30 @@ function speakText(text) {
   let preferred = null;
 
   if (lang === 'id-ID') {
-    // Try to map based on gender settings
-    if (ttsVoiceSetting.includes('male')) {
-      preferred = voices.find(v => v.lang === lang && v.name.includes('Ardi')); // Edge Online Male
-    } else if (ttsVoiceSetting.includes('female')) {
-      preferred = voices.find(v => v.lang === lang && v.name.includes('Gadis')); // Edge Online Female
-    }
-
-    // Fallbacks if not found:
-    if (!preferred) {
+    const isMalePref = ttsVoiceSetting.includes('male');
+    if (isMalePref) {
       preferred = 
-        voices.find(v => v.lang === lang && v.name.includes('Gadis')) || // Default female
-        voices.find(v => v.lang === lang && v.name.includes('Ardi')) ||  // Default male
-        voices.find(v => v.lang === lang && v.name.includes('Natural')) ||
-        voices.find(v => v.lang === lang && v.name.includes('Online')) ||
-        voices.find(v => v.lang === lang && !v.name.includes('Google')) ||
-        voices.find(v => v.lang === lang) ||
-        voices.find(v => v.lang.startsWith('id')) ||
-        null;
+        voices.find(v => v.lang === lang && (v.name.includes('Ardi') || v.name.includes('Argana') || v.name.includes('Male') || v.name.includes('Pria') || v.name.includes('Harpo') || v.name.includes('David'))) ||
+        voices.find(v => v.lang === lang && !v.name.toLowerCase().includes('gadis') && !v.name.toLowerCase().includes('siti') && !v.name.toLowerCase().includes('female') && !v.name.toLowerCase().includes('zira')) ||
+        voices.find(v => v.lang === lang);
+    } else {
+      preferred = 
+        voices.find(v => v.lang === lang && (v.name.includes('Gadis') || v.name.includes('Siti') || v.name.includes('Female') || v.name.includes('Wanita') || v.name.includes('Google'))) ||
+        voices.find(v => v.lang === lang);
     }
   } else {
     // English voice mapping
-    preferred = 
-      voices.find(v => v.lang === lang && v.name.includes('Natural')) ||
-      voices.find(v => v.lang === lang && v.name.includes('Online')) ||
-      voices.find(v => v.lang === lang && !v.name.includes('Google')) ||
-      voices.find(v => v.lang === lang) ||
-      null;
+    const isMalePref = ttsVoiceSetting.includes('male');
+    if (isMalePref) {
+      preferred = 
+        voices.find(v => v.lang === lang && (v.name.includes('Ryan') || v.name.includes('Male') || v.name.includes('David') || v.name.includes('Mark') || v.name.includes('George') || v.name.includes('Google US English Male'))) ||
+        voices.find(v => v.lang === lang && !v.name.toLowerCase().includes('lessac') && !v.name.toLowerCase().includes('female') && !v.name.toLowerCase().includes('zira') && !v.name.toLowerCase().includes('hazel') && !v.name.toLowerCase().includes('susan')) ||
+        voices.find(v => v.lang === lang);
+    } else {
+      preferred = 
+        voices.find(v => v.lang === lang && (v.name.includes('Lessac') || v.name.includes('Female') || v.name.includes('Zira') || v.name.includes('Hazel') || v.name.includes('Google'))) ||
+        voices.find(v => v.lang === lang);
+    }
   }
 
   if (preferred) {
@@ -403,7 +400,7 @@ function speakText(text) {
     if (defaultVoice) {
       currentUtterance.voice = defaultVoice;
       currentUtterance.lang = defaultVoice.lang;
-      console.warn(`[TTS] No Indonesian voice found. Falling back to voice: ${defaultVoice.name} (${defaultVoice.lang})`);
+      console.warn(`[TTS] No preferred Indonesian/English voice found. Falling back to voice: ${defaultVoice.name} (${defaultVoice.lang})`);
     } else {
       currentUtterance.lang = lang;
       console.warn(`[TTS] No voices available yet in SpeechSynthesis.`);
