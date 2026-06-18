@@ -3,7 +3,7 @@
  * Document upload, list, stats, and real keyword search.
  */
 
-import { $, $$, formatBytes, formatDate, animateValue, debounce } from '../utils/helpers.js';
+import { $, $$, formatBytes, formatDate, animateValue, debounce, showModalConfirm } from '../utils/helpers.js';
 
 let docs = [];
 
@@ -202,17 +202,18 @@ export function mount() {
         const docId = deleteBtn.dataset.docId;
         const doc = docs.find(d => d.id === docId);
         if (doc) {
-          if (!confirm(`Hapus dokumen "${doc.name}" dari RAG?`)) return;
-          fetch(`http://127.0.0.1:3001/api/documents/${encodeURIComponent(doc.name)}`, {
-            method: 'DELETE'
-          }).then(res => res.json()).then(data => {
-            if (data.success) {
-              docs = docs.filter(d => d.id !== docId);
-              tbody.innerHTML = renderDocRows();
-              updateStats();
-            }
-          }).catch(err => {
-            console.error('Gagal menghapus dokumen dari backend:', err);
+          showModalConfirm(`Hapus dokumen "${doc.name}" dari RAG?`, () => {
+            fetch(`http://127.0.0.1:3001/api/documents/${encodeURIComponent(doc.name)}`, {
+              method: 'DELETE'
+            }).then(res => res.json()).then(data => {
+              if (data.success) {
+                docs = docs.filter(d => d.id !== docId);
+                tbody.innerHTML = renderDocRows();
+                updateStats();
+              }
+            }).catch(err => {
+              console.error('Gagal menghapus dokumen dari backend:', err);
+            });
           });
         }
         return;

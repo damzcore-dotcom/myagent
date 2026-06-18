@@ -3,7 +3,7 @@
  * Admin dashboard to approve registrations and manage email whitelist.
  */
 
-import { $, $$, createElement, formatDate } from '../utils/helpers.js';
+import { $, $$, createElement, formatDate, showModalConfirm } from '../utils/helpers.js';
 
 let listData = {
   allowed: [],
@@ -379,43 +379,45 @@ async function handleApprove(email) {
 }
 
 async function handleReject(email) {
-  if (!confirm(`Reject registration request from ${email}?`)) return;
-  try {
-    const res = await fetch('http://127.0.0.1:3001/api/admin/users/reject', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email })
-    });
-    const data = await res.json();
-    if (res.ok && data.success) {
-      showAlert(`Rejected registration request from ${email}`, 'success');
-      fetchUsersData();
-    } else {
-      throw new Error(data.error || 'Rejection failed.');
+  showModalConfirm(`Reject registration request from ${email}?`, async () => {
+    try {
+      const res = await fetch('http://127.0.0.1:3001/api/admin/users/reject', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showAlert(`Rejected registration request from ${email}`, 'success');
+        fetchUsersData();
+      } else {
+        throw new Error(data.error || 'Rejection failed.');
+      }
+    } catch (err) {
+      showAlert(err.message, 'error');
     }
-  } catch (err) {
-    showAlert(err.message, 'error');
-  }
+  });
 }
 
 async function handleRevoke(email) {
-  if (!confirm(`Revoke whitelist access for ${email}?\nAll active sessions for this user will be invalidated.`)) return;
-  try {
-    const res = await fetch('http://127.0.0.1:3001/api/admin/users/whitelist-remove', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email })
-    });
-    const data = await res.json();
-    if (res.ok && data.success) {
-      showAlert(`Removed ${email} from allowed whitelist`, 'success');
-      fetchUsersData();
-    } else {
-      throw new Error(data.error || 'Revocation failed.');
+  showModalConfirm(`Revoke whitelist access for ${email}?\nAll active sessions for this user will be invalidated.`, async () => {
+    try {
+      const res = await fetch('http://127.0.0.1:3001/api/admin/users/whitelist-remove', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showAlert(`Removed ${email} from allowed whitelist`, 'success');
+        fetchUsersData();
+      } else {
+        throw new Error(data.error || 'Revocation failed.');
+      }
+    } catch (err) {
+      showAlert(err.message, 'error');
     }
-  } catch (err) {
-    showAlert(err.message, 'error');
-  }
+  });
 }
 
 async function handleAddManual(email) {

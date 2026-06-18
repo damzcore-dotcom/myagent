@@ -3,7 +3,7 @@
  * Ollama connection, model selection, STT/TTS settings, agent configuration.
  */
 
-import { $, $$, sleep } from '../utils/helpers.js';
+import { $, $$, sleep, showModalConfirm } from '../utils/helpers.js';
 
 const SETTINGS_DEFAULTS = {
   ollama: {
@@ -671,7 +671,7 @@ export function mount() {
   const resetBtn = $('#settings-reset-btn');
   if (resetBtn) {
     resetBtn.addEventListener('click', () => {
-      if (confirm('Reset semua pengaturan ke default?')) {
+      showModalConfirm('Reset semua pengaturan ke default?', () => {
         localStorage.removeItem('damz_settings');
         settings = JSON.parse(JSON.stringify(SETTINGS_DEFAULTS));
         saveSettings();
@@ -681,7 +681,7 @@ export function mount() {
           mount();
         }
         showToast('✓ Settings reset to default');
-      }
+      });
     });
   }
 }

@@ -125,3 +125,132 @@ export function uid() {
 export function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
+
+/** Display a premium dark themed confirmation modal dialog instead of browser confirm() */
+export function showModalConfirm(message, onConfirm, onCancel) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = `
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 14, 20, 0.85);
+    backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    animation: fadeIn 0.2s ease;
+  `;
+
+  const card = document.createElement('div');
+  card.style.cssText = `
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    max-width: 420px;
+    width: 90%;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  `;
+
+  // Top Yellow Status Bar
+  const bar = document.createElement('div');
+  bar.style.cssText = `
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--primary);
+  `;
+  card.appendChild(bar);
+
+  // App Title
+  const title = document.createElement('div');
+  title.style.cssText = `
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 18px;
+    margin-top: 6px;
+  `;
+  title.textContent = '🤖 DAMZ AGENT';
+  card.appendChild(title);
+
+  // Message body
+  const body = document.createElement('div');
+  body.style.cssText = `
+    font-family: var(--font-sans);
+    font-size: 14px;
+    color: var(--text-primary);
+    line-height: 1.6;
+    margin-bottom: 24px;
+    text-align: center;
+    white-space: pre-line;
+  `;
+  body.textContent = message;
+  card.appendChild(body);
+
+  // Button Wrapper
+  const btnWrapper = document.createElement('div');
+  btnWrapper.style.cssText = `
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+  `;
+
+  // Cancel Button
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'btn btn-secondary';
+  cancelBtn.style.cssText = `
+    padding: 8px 20px;
+    font-size: 12px;
+    min-width: 100px;
+    justify-content: center;
+  `;
+  cancelBtn.textContent = 'Batal';
+  btnWrapper.appendChild(cancelBtn);
+
+  // Confirm Button
+  const confirmBtn = document.createElement('button');
+  confirmBtn.className = 'btn btn-primary';
+  confirmBtn.style.cssText = `
+    padding: 8px 20px;
+    font-size: 12px;
+    min-width: 100px;
+    justify-content: center;
+  `;
+  confirmBtn.textContent = 'Ya';
+  btnWrapper.appendChild(confirmBtn);
+  card.appendChild(btnWrapper);
+
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
+
+  const close = (confirmed) => {
+    overlay.style.opacity = '0';
+    overlay.style.transition = 'opacity 0.15s ease';
+    card.style.transform = 'translateY(12px)';
+    card.style.transition = 'transform 0.15s ease';
+    setTimeout(() => {
+      document.body.removeChild(overlay);
+      if (confirmed) {
+        if (onConfirm) onConfirm();
+      } else {
+        if (onCancel) onCancel();
+      }
+    }, 150);
+  };
+
+  confirmBtn.addEventListener('click', () => close(true));
+  cancelBtn.addEventListener('click', () => close(false));
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) close(false);
+  });
+}

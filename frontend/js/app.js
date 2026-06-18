@@ -3,7 +3,7 @@
  * SPA router with auth guard, initialization, and global lifecycle.
  */
 
-import { $, formatDuration } from './utils/helpers.js';
+import { $, formatDuration, showModalConfirm } from './utils/helpers.js';
 import { renderSidebar, mountSidebar, setActiveNavItem, updateSidebarStatus } from './components/sidebar.js';
 
 // Page modules
@@ -244,13 +244,14 @@ function mountLogout() {
   if (logoutBtn) {
     logoutBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      if (!confirm('Shutdown Damz Agent?\n\nSemua sesi akan ditutup.')) return;
-      LoginPage.logout();
-      if (currentPage && currentPage.unmount) currentPage.unmount();
-      currentPage = null;
-      currentPageName = null;
-      location.hash = '';
-      showLogin();
+      showModalConfirm('Shutdown Damz Agent?\n\nSemua sesi akan ditutup.', () => {
+        LoginPage.logout();
+        if (currentPage && currentPage.unmount) currentPage.unmount();
+        currentPage = null;
+        currentPageName = null;
+        location.hash = '';
+        showLogin();
+      });
     });
   }
 }
