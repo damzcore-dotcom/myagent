@@ -359,6 +359,14 @@ function speakText(text) {
   currentUtterance.pitch = 1.0;
   currentUtterance.volume = 1.0;
 
+  // Helper to match voice language code flexibly (e.g. id matches id-ID, id_ID, etc.)
+  const langMatches = (voiceLang, targetLang) => {
+    if (!voiceLang) return false;
+    const v = voiceLang.toLowerCase().replace('_', '-');
+    const t = targetLang.toLowerCase().replace('_', '-');
+    return v === t || v.split('-')[0] === t.split('-')[0];
+  };
+
   // Select the best natural-sounding voice
   const voices = window.speechSynthesis.getVoices();
   let preferred = null;
@@ -367,26 +375,26 @@ function speakText(text) {
     const isMalePref = ttsVoiceSetting.includes('male');
     if (isMalePref) {
       preferred = 
-        voices.find(v => v.lang === lang && (v.name.includes('Ardi') || v.name.includes('Argana') || v.name.includes('Male') || v.name.includes('Pria') || v.name.includes('Harpo') || v.name.includes('David'))) ||
-        voices.find(v => v.lang === lang && !v.name.toLowerCase().includes('gadis') && !v.name.toLowerCase().includes('siti') && !v.name.toLowerCase().includes('female') && !v.name.toLowerCase().includes('zira')) ||
-        voices.find(v => v.lang === lang);
+        voices.find(v => langMatches(v.lang, lang) && (v.name.includes('Ardi') || v.name.includes('Argana') || v.name.includes('Male') || v.name.includes('Pria') || v.name.includes('Harpo') || v.name.includes('David'))) ||
+        voices.find(v => langMatches(v.lang, lang) && !v.name.toLowerCase().includes('gadis') && !v.name.toLowerCase().includes('siti') && !v.name.toLowerCase().includes('female') && !v.name.toLowerCase().includes('zira')) ||
+        voices.find(v => langMatches(v.lang, lang));
     } else {
       preferred = 
-        voices.find(v => v.lang === lang && (v.name.includes('Gadis') || v.name.includes('Siti') || v.name.includes('Female') || v.name.includes('Wanita') || v.name.includes('Google'))) ||
-        voices.find(v => v.lang === lang);
+        voices.find(v => langMatches(v.lang, lang) && (v.name.includes('Gadis') || v.name.includes('Siti') || v.name.includes('Female') || v.name.includes('Wanita') || v.name.includes('Google'))) ||
+        voices.find(v => langMatches(v.lang, lang));
     }
   } else {
     // English voice mapping
     const isMalePref = ttsVoiceSetting.includes('male');
     if (isMalePref) {
       preferred = 
-        voices.find(v => v.lang === lang && (v.name.includes('Ryan') || v.name.includes('Male') || v.name.includes('David') || v.name.includes('Mark') || v.name.includes('George') || v.name.includes('Google US English Male'))) ||
-        voices.find(v => v.lang === lang && !v.name.toLowerCase().includes('lessac') && !v.name.toLowerCase().includes('female') && !v.name.toLowerCase().includes('zira') && !v.name.toLowerCase().includes('hazel') && !v.name.toLowerCase().includes('susan')) ||
-        voices.find(v => v.lang === lang);
+        voices.find(v => langMatches(v.lang, lang) && (v.name.includes('Ryan') || v.name.includes('Male') || v.name.includes('David') || v.name.includes('Mark') || v.name.includes('George') || v.name.includes('Google US English Male'))) ||
+        voices.find(v => langMatches(v.lang, lang) && !v.name.toLowerCase().includes('lessac') && !v.name.toLowerCase().includes('female') && !v.name.toLowerCase().includes('zira') && !v.name.toLowerCase().includes('hazel') && !v.name.toLowerCase().includes('susan')) ||
+        voices.find(v => langMatches(v.lang, lang));
     } else {
       preferred = 
-        voices.find(v => v.lang === lang && (v.name.includes('Lessac') || v.name.includes('Female') || v.name.includes('Zira') || v.name.includes('Hazel') || v.name.includes('Google'))) ||
-        voices.find(v => v.lang === lang);
+        voices.find(v => langMatches(v.lang, lang) && (v.name.includes('Lessac') || v.name.includes('Female') || v.name.includes('Zira') || v.name.includes('Hazel') || v.name.includes('Google'))) ||
+        voices.find(v => langMatches(v.lang, lang));
     }
   }
 
@@ -627,7 +635,7 @@ async function handleChatResponse(text) {
       content: msg.content
     }));
 
-    const res = await fetch('http://localhost:3001/api/ollama/chat', {
+    const res = await fetch('http://127.0.0.1:3001/api/ollama/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

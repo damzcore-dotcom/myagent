@@ -145,7 +145,7 @@ export function mount(onLogin) {
         }
 
         // Try better-auth API
-        const res = await fetch('http://localhost:3001/api/auth/sign-in/email', {
+        const res = await fetch('http://127.0.0.1:3001/api/auth/sign-in/email', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password }),
@@ -176,7 +176,7 @@ export function mount(onLogin) {
           throw new Error('Password must be at least 8 characters');
         }
 
-        const res = await fetch('http://localhost:3001/api/auth/sign-up/email', {
+        const res = await fetch('http://127.0.0.1:3001/api/auth/sign-up/email', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name, email, password }),
@@ -245,5 +245,5 @@ export function getCurrentUser() {
 export function logout() {
   localStorage.removeItem('damz_session');
   // Try to call better-auth logout
-  fetch('http://localhost:3001/api/auth/sign-out', { method: 'POST', credentials: 'include' }).catch(() => {});
+  fetch('http://127.0.0.1:3001/api/auth/sign-out', { method: 'POST', credentials: 'include' }).catch(() => {});
 }

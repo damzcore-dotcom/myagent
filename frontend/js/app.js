@@ -43,7 +43,7 @@ function getActiveModel() {
 
 async function updateStatus() {
   try {
-    const res = await fetch('http://localhost:3001/api/system/metrics');
+    const res = await fetch('http://127.0.0.1:3001/api/system/metrics');
     if (res.ok) {
       const metrics = await res.json();
       updateSidebarStatus({

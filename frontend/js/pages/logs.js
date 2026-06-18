@@ -45,7 +45,7 @@ export function render() {
 
 async function fetchLogs() {
   try {
-    const res = await fetch('http://localhost:3001/api/logs');
+    const res = await fetch('http://127.0.0.1:3001/api/logs');
     if (res.ok) {
       const data = await res.json();
       if (data.success && data.logs) {

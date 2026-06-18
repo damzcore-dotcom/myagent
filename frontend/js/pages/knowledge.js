@@ -130,7 +130,7 @@ function renderDocRows() {
 
 async function fetchDocuments() {
   try {
-    const res = await fetch('http://localhost:3001/api/documents');
+    const res = await fetch('http://127.0.0.1:3001/api/documents');
     if (res.ok) {
       const data = await res.json();
       if (data.success && data.documents) {
@@ -203,7 +203,7 @@ export function mount() {
         const doc = docs.find(d => d.id === docId);
         if (doc) {
           if (!confirm(`Hapus dokumen "${doc.name}" dari RAG?`)) return;
-          fetch(`http://localhost:3001/api/documents/${encodeURIComponent(doc.name)}`, {
+          fetch(`http://127.0.0.1:3001/api/documents/${encodeURIComponent(doc.name)}`, {
             method: 'DELETE'
           }).then(res => res.json()).then(data => {
             if (data.success) {
@@ -276,7 +276,7 @@ function handleFiles(fileList) {
       if (tbody) tbody.innerHTML = renderDocRows();
       
       try {
-        const res = await fetch('http://localhost:3001/api/documents/upload', {
+        const res = await fetch('http://127.0.0.1:3001/api/documents/upload', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: f.name, base64 })
@@ -332,7 +332,7 @@ async function handleSearch(query) {
   resultsEl.innerHTML = `<div style="font-size:12px;color:var(--text-muted);font-family:var(--font-mono)">Searching...</div>`;
 
   try {
-    const res = await fetch('http://localhost:3001/api/documents/search', {
+    const res = await fetch('http://127.0.0.1:3001/api/documents/search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ query })

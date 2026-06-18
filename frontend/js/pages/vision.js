@@ -208,7 +208,7 @@ async function runAnalysis() {
   }
 
   try {
-    const res = await fetch('http://localhost:3001/api/vision/analyze', {
+    const res = await fetch('http://127.0.0.1:3001/api/vision/analyze', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ filename, base64, model: visionModel })
