@@ -66,7 +66,7 @@ export function render() {
                 </div>
                 <div class="login-field">
                   <label class="login-label" for="reg-password">Kata Sandi</label>
-                  <input type="password" class="input" id="reg-password" placeholder="Masukkan kata sandi (min. 8 karakter)" autocomplete="new-password" required>
+                  <input type="password" class="input" id="reg-password" placeholder="Masukkan kata sandi (min. 8 karakter)" autocomplete="one-time-code" required>
                   <!-- Password Strength Indicator -->
                   <div id="password-strength-container" class="hidden" style="margin-top: 8px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
