@@ -10,18 +10,20 @@ export function render() {
     <div class="login-page">
       <div class="login-bg">
         <div class="login-grid-overlay"></div>
+        <div class="login-glow-orb login-glow-orb-1"></div>
+        <div class="login-glow-orb login-glow-orb-2"></div>
+        <div class="login-glow-orb login-glow-orb-3"></div>
       </div>
       <div class="login-container">
         <div class="login-card">
           <!-- Logo -->
           <div class="login-logo">
             <div class="login-logo-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="11" width="18" height="10" rx="2"/>
-                <circle cx="12" cy="5" r="2"/>
-                <path d="M12 7v4"/>
-                <line x1="8" y1="16" x2="8" y2="16"/>
-                <line x1="16" y1="16" x2="16" y2="16"/>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="9" stroke-dasharray="3 3" opacity="0.4"/>
+                <circle cx="12" cy="12" r="6" opacity="0.7"/>
+                <circle cx="12" cy="12" r="3" fill="currentColor"/>
+                <path d="M12 3v18M16 6v12M8 6v12M20 10v4M4 10v4" opacity="0.85"/>
               </svg>
             </div>
             <div class="login-logo-text">DAMZ AGENT</div>
