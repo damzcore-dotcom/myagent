@@ -1016,10 +1016,23 @@
   }
 
   /* Disable shadows and hover transitions/transforms on mobile devices */
-  .card {
+  :root, :root[data-theme="clean"] {
+    --card-shadow: none !important;
+    --card-shadow-hover: none !important;
+  }
+
+  .card, 
+  .stat-card, 
+  .quick-action-card, 
+  .agent-status-card,
+  .model-card {
     box-shadow: none !important;
   }
-  .card:hover {
+  .card:hover,
+  .stat-card:hover,
+  .quick-action-card:hover,
+  .agent-status-card:hover,
+  .model-card:hover {
     box-shadow: none !important;
     transform: none !important;
   }
