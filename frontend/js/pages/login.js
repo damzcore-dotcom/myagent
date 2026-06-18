@@ -32,8 +32,8 @@ export function render() {
           <form class="login-form" id="login-form">
             <div id="login-tab-content">
               <div class="login-tabs">
-                <button type="button" class="login-tab active" data-tab="login">Sign In</button>
-                <button type="button" class="login-tab" data-tab="register">Register</button>
+                <button type="button" class="login-tab active" data-tab="login">Masuk</button>
+                <button type="button" class="login-tab" data-tab="register">Daftar</button>
               </div>
 
               <!-- Sign In Fields -->
@@ -43,13 +43,13 @@ export function render() {
                   <input type="email" class="input" id="login-email" placeholder="agent@damz.local" required autocomplete="email">
                 </div>
                 <div class="login-field">
-                  <label class="login-label" for="login-password">Password</label>
+                  <label class="login-label" for="login-password">Kata Sandi</label>
                   <input type="password" class="input" id="login-password" placeholder="••••••••" required autocomplete="current-password">
                 </div>
                 <div class="login-remember">
                   <label class="login-checkbox-label">
                     <input type="checkbox" id="remember-me" checked>
-                    <span>Remember me</span>
+                    <span>Ingat saya</span>
                   </label>
                 </div>
               </div>
@@ -57,7 +57,7 @@ export function render() {
               <!-- Register Fields -->
               <div class="login-fields hidden" id="register-fields">
                 <div class="login-field">
-                  <label class="login-label" for="reg-name">Full Name</label>
+                  <label class="login-label" for="reg-name">Nama Lengkap</label>
                   <input type="text" class="input" id="reg-name" placeholder="Damz" autocomplete="name">
                 </div>
                 <div class="login-field">
@@ -65,8 +65,11 @@ export function render() {
                   <input type="email" class="input" id="reg-email" placeholder="agent@damz.local" autocomplete="email">
                 </div>
                 <div class="login-field">
-                  <label class="login-label" for="reg-password">Password</label>
-                  <input type="password" class="input" id="reg-password" placeholder="Min 8 characters" autocomplete="new-password">
+                  <label class="login-label" for="reg-password">Kata Sandi</label>
+                  <input type="password" class="input" id="reg-password" placeholder="Minimal 8 karakter" autocomplete="new-password">
+                </div>
+                <div style="font-size: 11px; color: var(--status-yellow); margin-top: 12px; font-family: var(--font-mono); line-height: 1.4; border: 1px dashed rgba(210,153,34,0.3); padding: 8px; border-radius: var(--radius);">
+                  ⚠️ Account anda akan kami tinjau terlebih dahulu, Terimakasih sudah mendaftar
                 </div>
               </div>
             </div>
@@ -78,7 +81,7 @@ export function render() {
 
             <!-- Submit -->
             <button type="submit" class="btn btn-primary btn-lg login-submit" id="login-submit">
-              <span id="login-btn-text">Sign In</span>
+              <span id="login-btn-text">Masuk</span>
               <span class="login-spinner hidden" id="login-spinner"></span>
             </button>
           </form>
@@ -119,11 +122,11 @@ export function mount(onLogin) {
       if (currentTab === 'login') {
         loginFields.classList.remove('hidden');
         registerFields.classList.add('hidden');
-        btnText.textContent = 'Sign In';
+        btnText.textContent = 'Masuk';
       } else {
         loginFields.classList.add('hidden');
         registerFields.classList.remove('hidden');
-        btnText.textContent = 'Create Account';
+        btnText.textContent = 'Daftar';
       }
 
       errorEl.classList.add('hidden');
@@ -137,7 +140,7 @@ export function mount(onLogin) {
     errorEl.classList.add('hidden');
     successEl.classList.add('hidden');
     submitBtn.disabled = true;
-    btnText.textContent = currentTab === 'login' ? 'Signing in...' : 'Creating account...';
+    btnText.textContent = currentTab === 'login' ? 'Memproses masuk...' : 'Memproses daftar...';
     spinner.classList.remove('hidden');
 
     try {
@@ -235,7 +238,7 @@ export function mount(onLogin) {
       errorEl.classList.remove('hidden');
     } finally {
       submitBtn.disabled = false;
-      btnText.textContent = currentTab === 'login' ? 'Sign In' : 'Create Account';
+      btnText.textContent = currentTab === 'login' ? 'Masuk' : 'Daftar';
       spinner.classList.add('hidden');
     }
   });
