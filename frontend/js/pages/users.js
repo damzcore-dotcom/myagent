@@ -4,6 +4,7 @@
  */
 
 import { $, $$, createElement, formatDate, showModalConfirm } from '../utils/helpers.js';
+import { API_BASE } from '../utils/config.js';
 
 let listData = {
   allowed: [],
@@ -205,7 +206,7 @@ function showAlert(message, type = 'success') {
 
 async function fetchUsersData() {
   try {
-    const res = await fetch('http://127.0.0.1:3001/api/admin/users');
+    const res = await fetch(`${API_BASE}/api/admin/users`);
     if (!res.ok) {
       throw new Error(res.status === 403 ? 'Forbidden: Admin access required.' : 'Failed to fetch users list.');
     }
@@ -368,7 +369,7 @@ function updateUI() {
 
 async function handleApprove(email) {
   try {
-    const res = await fetch('http://127.0.0.1:3001/api/admin/users/approve', {
+    const res = await fetch(`${API_BASE}/api/admin/users/approve`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email })
@@ -388,7 +389,7 @@ async function handleApprove(email) {
 async function handleReject(email) {
   showModalConfirm(`Reject registration request from ${email}?`, async () => {
     try {
-      const res = await fetch('http://127.0.0.1:3001/api/admin/users/reject', {
+      const res = await fetch(`${API_BASE}/api/admin/users/reject`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
@@ -409,7 +410,7 @@ async function handleReject(email) {
 async function handleRevoke(email) {
   showModalConfirm(`Revoke whitelist access for ${email}?\nAll active sessions for this user will be invalidated.`, async () => {
     try {
-      const res = await fetch('http://127.0.0.1:3001/api/admin/users/whitelist-remove', {
+      const res = await fetch(`${API_BASE}/api/admin/users/whitelist-remove`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
@@ -429,7 +430,7 @@ async function handleRevoke(email) {
 
 async function handleAddManual(email) {
   try {
-    const res = await fetch('http://127.0.0.1:3001/api/admin/users/whitelist-add', {
+    const res = await fetch(`${API_BASE}/api/admin/users/whitelist-add`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email })
@@ -449,7 +450,7 @@ async function handleAddManual(email) {
 
 async function handleRestore(email) {
   try {
-    const res = await fetch('http://127.0.0.1:3001/api/admin/users/whitelist-add', {
+    const res = await fetch(`${API_BASE}/api/admin/users/whitelist-add`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email })

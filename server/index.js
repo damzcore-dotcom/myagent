@@ -13,6 +13,8 @@ import fs from 'fs';
 import os from 'os';
 import { spawn } from 'child_process';
 import crypto from 'crypto';
+import { parseOffice } from 'officeparser';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -196,7 +198,8 @@ app.use(cors({
   credentials: true,
 }));
 
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // ── Authentication Middleware ────────────────────────
 async function requireAuth(req, res, next) {
@@ -559,8 +562,14 @@ app.get('/api/ollama/models', async (req, res) => {
       const name = m.name || '';
       const baseName = name.split(':')[0].toLowerCase();
       let tags = ['GENERAL'];
-      for (const [key, tagList] of Object.entries(MODEL_TAGS)) {
-        if (baseName.includes(key)) { tags = tagList; break; }
+      
+      // Check vision first (more specific)
+      if (isVisionModel(name)) {
+        tags = ['VISION'];
+      } else {
+        for (const [key, tagList] of Object.entries(MODEL_TAGS)) {
+          if (baseName.includes(key)) { tags = tagList; break; }
+        }
       }
       return {
         name,
@@ -619,11 +628,182 @@ app.delete('/api/ollama/models/:name', async (req, res) => {
   }
 });
 
+// Known vision-capable model name patterns
+const VISION_MODEL_PATTERNS = [
+  'llama3.2-vision', 'llama3.2-vision:11b', 'llama3.2-vision:latest',
+  'llava', 'llava:latest', 'llava:13b', 'llava:7b',
+  'bakllava', 'bakllava:latest',
+  'moondream', 'moondream:latest',
+  'qwen2-vl', 'qwen2.5-vl', 'qwen2vl', 'qwen2.5vl',
+  'minicpm-v', 'llava-phi3',
+  'cogvlm2', 'internvl2',
+];
+
+// Check if a model name looks like a vision model
+function isVisionModel(modelName) {
+  const lower = (modelName || '').toLowerCase();
+  return VISION_MODEL_PATTERNS.some(p => lower.includes(p.split(':')[0])) ||
+         lower.includes('vision') || lower.includes('llava') ||
+         /[-.]vl[:\-.]/.test(lower) || /vl:\w/.test(lower) || lower.endsWith('vl');
+}
+
+// Auto-detect available vision models from Ollama
+async function getAvailableVisionModels() {
+  const baseUrl = getOllamaUrl();
+  try {
+    const r = await fetch(`${baseUrl}/api/tags`, { signal: AbortSignal.timeout(5000) });
+    if (!r.ok) return [];
+    const data = await r.json();
+    const models = (data.models || []).map(m => m.name).filter(isVisionModel);
+    return models;
+  } catch (e) {
+    addLog('warn', 'VISION', `Gagal mendapatkan daftar model vision: ${e.message}`);
+    return [];
+  }
+}
+
+// Helper function to analyze image with vision model (auto-detect)
+async function analyzeImageVision(filename, base64Raw, preferredModel = null) {
+  const baseUrl = getOllamaUrl();
+  const base64 = base64Raw.split(',')[1] || base64Raw;
+
+  // Build candidate list: preferred model first, then auto-detected vision models
+  let candidates = [];
+  if (preferredModel && isVisionModel(preferredModel)) {
+    candidates.push(preferredModel);
+  }
+  const available = await getAvailableVisionModels();
+  for (const m of available) {
+    if (!candidates.includes(m)) candidates.push(m);
+  }
+
+  if (candidates.length === 0) {
+    addLog('warn', 'VISION', `Tidak ada model vision terdeteksi di Ollama. Install model vision (contoh: ollama pull llama3.2-vision) untuk menganalisis gambar.`);
+    const sizeInKb = Math.round((base64.length * 0.75) / 1024);
+    return `[Tidak Ada Model Vision] Gambar "${filename}" (${sizeInKb} KB) tidak dapat dianalisis karena tidak ada model vision yang terinstall di Ollama. Silakan install model vision dengan menjalankan: ollama pull llama3.2-vision`;
+  }
+
+  // Try each candidate vision model
+  for (const visionModel of candidates) {
+    try {
+      addLog('info', 'VISION', `Menganalisis gambar "${filename}" menggunakan model ${visionModel}...`);
+      const r = await fetch(`${baseUrl}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: visionModel,
+          messages: [
+            {
+              role: 'user',
+              content: 'Jelaskan gambar ini secara detail dalam bahasa Indonesia. Ekstrak semua teks (OCR) yang terlihat.',
+              images: [base64]
+            }
+          ],
+          stream: false
+        }),
+        signal: AbortSignal.timeout(90000)
+      });
+      if (r.ok) {
+        const data = await r.json();
+        const content = data.message?.content || '';
+        if (content) {
+          addLog('info', 'VISION', `Analisis gambar "${filename}" berhasil dengan model ${visionModel}.`);
+          return content;
+        }
+      } else {
+        addLog('warn', 'VISION', `Model ${visionModel} gagal (HTTP ${r.status}), mencoba model lain...`);
+      }
+    } catch (e) {
+      addLog('warn', 'VISION', `Model ${visionModel} error: ${e.message}. Mencoba model lain...`);
+    }
+  }
+
+  const sizeInKb = Math.round((base64.length * 0.75) / 1024);
+  return `[Vision Gagal] Semua model vision gagal menganalisis gambar "${filename}" (${sizeInKb} KB). Model yang dicoba: ${candidates.join(', ')}. Pastikan model vision berjalan dengan benar.`;
+}
+
+// Helper function to process all file attachments (images, office documents, notepad)
+async function processAttachments(attachments, activeModel = null) {
+  if (!attachments || !Array.isArray(attachments) || attachments.length === 0) {
+    return "";
+  }
+
+  const dir = getWatchDir();
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+
+  let injectionText = "";
+
+  for (const att of attachments) {
+    const { name, type, base64 } = att;
+    if (!name || !base64) continue;
+
+    try {
+      const buffer = Buffer.from(base64.split(',')[1] || base64, 'base64');
+      const filePath = path.join(dir, name);
+      fs.writeFileSync(filePath, buffer);
+      addLog('info', 'RAG', `Menyimpan attachment: ${name} (${Math.round(buffer.length/1024)} KB) ke RAG folder.`);
+
+      const ext = path.extname(name).toLowerCase().replace('.', '');
+      
+      // Process Images
+      if (['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext)) {
+        let description = "";
+        try {
+          description = await analyzeImageVision(name, base64, activeModel);
+        } catch (visionErr) {
+          description = `[Error menganalisis gambar: ${visionErr.message}]. Fallback size: ${Math.round(buffer.length/1024)} KB.`;
+        }
+
+        // Save description to RAG memory
+        const timestamp = Date.now();
+        const memFileName = `image_memory_${timestamp}_${name.replace(/[^a-zA-Z0-9.-]/g, '_')}.txt`;
+        const memFilePath = path.join(dir, memFileName);
+        fs.writeFileSync(memFilePath, `File: ${name}\nDescription: ${description}`, 'utf8');
+        addLog('info', 'RAG', `Menyimpan memori deskripsi gambar: ${memFileName}`);
+
+        injectionText += `\n\n[Attached Image: ${name}]\nVisual Description:\n${description}\n`;
+      } 
+      // Process Documents
+      else {
+        let extractedText = "";
+        if (ext === 'txt') {
+          extractedText = buffer.toString('utf8');
+        } else if (['pdf', 'docx', 'xlsx', 'pptx', 'csv', 'html', 'md'].includes(ext)) {
+          try {
+            const parsed = await parseOffice(buffer, { fileType: ext });
+            extractedText = parsed.toText();
+          } catch (parseErr) {
+            addLog('error', 'RAG', `Gagal mengekstrak teks dari ${name} menggunakan officeparser: ${parseErr.message}`);
+            extractedText = `[Gagal mengekstrak teks dari dokumen: ${parseErr.message}]`;
+          }
+        } else {
+          extractedText = `[Format dokumen tidak didukung untuk ekstraksi teks]`;
+        }
+
+        // Write extracted text to name.txt for RAG indexing
+        const txtFilePath = path.join(dir, `${name}.txt`);
+        fs.writeFileSync(txtFilePath, extractedText, 'utf8');
+        addLog('info', 'RAG', `Menyimpan teks ekstraksi dokumen: ${name}.txt`);
+
+        injectionText += `\n\n[Attached Document: ${name}]\nContent:\n${extractedText}\n`;
+      }
+    } catch (err) {
+      addLog('error', 'RAG', `Gagal memproses attachment ${name}: ${err.message}`);
+      injectionText += `\n\n[Attached File Error: ${name} (Failed to process: ${err.message})]\n`;
+    }
+  }
+
+  return injectionText;
+}
+
 // Chat endpoint
 app.post('/api/ollama/chat', async (req, res) => {
   const baseUrl = getOllamaUrl();
-  const { model, messages, temperature } = req.body;
-  addLog('info', 'LLM', `Mengirim query ke Ollama dengan model: ${model || 'qwen2.5:7b'}...`);
+  const { model, messages, temperature, attachments } = req.body;
+  const activeModel = model || 'qwen2.5:7b';
+  addLog('info', 'LLM', `Mengirim query ke Ollama dengan model: ${activeModel}...`);
   try {
     // Read system prompt from config
     let systemPrompt = "Kamu adalah Damz, asisten AI pribadi yang berjalan 100% lokal. Jawab singkat, jelas, dan santai. SELALU gunakan bahasa Indonesia. JANGAN PERNAH menyertakan karakter, tulisan, huruf Mandarin (China), atau menawarkan ganti bahasa di akhir jawaban Anda. Hindari markdown, bullet point, atau format panjang.";
@@ -640,10 +820,93 @@ app.post('/api/ollama/chat', async (req, res) => {
       console.warn('[SERVER] Failed to read system prompt from config:', e.message);
     }
 
-    // Prepend system message for Ollama context
+    const hasImageAttachments = attachments && Array.isArray(attachments) && 
+      attachments.some(att => ['png','jpg','jpeg','gif','webp'].includes((att.type || '').toLowerCase()));
+    const activeModelIsVision = isVisionModel(activeModel);
+
+    // Prepare messages
+    let recentMessages = [...(messages || [])];
+
+    if (activeModelIsVision && hasImageAttachments) {
+      // ── DIRECT VISION MODE ──
+      // Active model supports vision → send images directly in the message
+      addLog('info', 'VISION', `Model aktif ${activeModel} mendukung vision. Mengirim gambar langsung.`);
+      
+      const imageBase64List = [];
+      let nonImageInjection = "";
+
+      for (const att of attachments) {
+        const { name, type, base64 } = att;
+        if (!name || !base64) continue;
+        const ext = (type || '').toLowerCase();
+
+        if (['png','jpg','jpeg','gif','webp'].includes(ext)) {
+          // Collect raw base64 for direct vision
+          const raw = base64.split(',')[1] || base64;
+          imageBase64List.push(raw);
+
+          // Also save to RAG folder
+          try {
+            const dir = getWatchDir();
+            if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+            const buffer = Buffer.from(raw, 'base64');
+            fs.writeFileSync(path.join(dir, name), buffer);
+            addLog('info', 'RAG', `Menyimpan attachment gambar: ${name}`);
+          } catch (e) {
+            addLog('warn', 'RAG', `Gagal menyimpan ${name}: ${e.message}`);
+          }
+        } else {
+          // Non-image attachments: process as text
+          try {
+            const buffer = Buffer.from((base64.split(',')[1] || base64), 'base64');
+            const dir = getWatchDir();
+            if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+            fs.writeFileSync(path.join(dir, name), buffer);
+
+            let extractedText = "";
+            if (ext === 'txt') {
+              extractedText = buffer.toString('utf8');
+            } else if (['pdf','docx','xlsx','pptx','csv','html','md'].includes(ext)) {
+              const parsed = await parseOffice(buffer, { fileType: ext });
+              extractedText = parsed.toText();
+            }
+            if (extractedText) {
+              nonImageInjection += `\n\n[Attached Document: ${name}]\nContent:\n${extractedText}\n`;
+            }
+          } catch (e) {
+            addLog('warn', 'RAG', `Gagal memproses attachment ${name}: ${e.message}`);
+          }
+        }
+      }
+
+      // Inject images into the last user message
+      if (recentMessages.length > 0) {
+        const lastMsg = recentMessages[recentMessages.length - 1];
+        if (lastMsg.role === 'user') {
+          lastMsg.images = imageBase64List;
+          if (nonImageInjection) {
+            lastMsg.content = lastMsg.content + nonImageInjection;
+          }
+        }
+      }
+
+    } else if (attachments && Array.isArray(attachments) && attachments.length > 0) {
+      // ── PRE-ANALYSIS MODE ──
+      // Active model is NOT vision → pre-analyze images with a vision model, inject text
+      const injectionText = await processAttachments(attachments, activeModel);
+      if (injectionText && recentMessages.length > 0) {
+        const lastMsg = recentMessages[recentMessages.length - 1];
+        if (lastMsg.role === 'user') {
+          lastMsg.content = lastMsg.content + injectionText;
+        } else {
+          recentMessages.push({ role: 'user', content: injectionText });
+        }
+      }
+    }
+
     const formattedMessages = [
       { role: 'system', content: systemPrompt },
-      ...(messages || [])
+      ...recentMessages
     ];
 
     const start = Date.now();
@@ -651,7 +914,7 @@ app.post('/api/ollama/chat', async (req, res) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: model || 'qwen2.5:7b',
+        model: activeModel,
         messages: formattedMessages,
         options: { temperature: temperature || 0.7 },
         stream: false,
@@ -918,47 +1181,19 @@ app.post('/api/vision/analyze', async (req, res) => {
   if (!base64) {
     return res.status(400).json({ success: false, error: 'Missing image data' });
   }
-  const baseUrl = getOllamaUrl();
   const activeModel = req.body.model || 'llama3.2-vision:11b';
   
   try {
-    addLog('info', 'VISION', `Menganalisis gambar "${filename}" menggunakan model ${activeModel}...`);
-    const r = await fetch(`${baseUrl}/api/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: activeModel,
-        messages: [
-          {
-            role: 'user',
-            content: 'Jelaskan gambar ini secara detail dan ekstrak teks apa pun (OCR) yang Anda lihat.',
-            images: [base64]
-          }
-        ],
-        stream: false
-      }),
-      signal: AbortSignal.timeout(60000)
+    const content = await analyzeImageVision(filename, base64, activeModel);
+    return res.json({
+      success: true,
+      description: content,
+      ocrText: content.match(/[A-Z0-9\s]{3,}/g)?.join(' ') || 'Tidak ada teks yang terdeteksi.'
     });
-    if (r.ok) {
-      const data = await r.json();
-      const content = data.message?.content || '';
-      addLog('info', 'VISION', `Analisis gambar "${filename}" selesai.`);
-      return res.json({
-        success: true,
-        description: content,
-        ocrText: content.match(/[A-Z0-9\s]{3,}/g)?.join(' ') || 'Tidak ada teks yang terdeteksi.'
-      });
-    }
   } catch (e) {
-    addLog('warn', 'VISION', `Gagal analisis dengan Ollama (${e.message}). Menggunakan analisis lokal.`);
+    addLog('error', 'VISION', `Gagal analisis visual: ${e.message}`);
+    res.status(500).json({ success: false, error: e.message });
   }
-
-  const sizeInKb = Math.round((base64.length * 0.75) / 1024);
-  res.json({
-    success: true,
-    description: `[Analisis Lokal Fallback] Gambar "${filename}" (${sizeInKb} KB) telah berhasil diproses secara lokal. Deskripsi visual lengkap membutuhkan model vision lokal (seperti llama3.2-vision atau llava) yang terpasang dan berjalan aktif di Ollama. Silakan pasang model vision di halaman Settings untuk analisis visual penuh.`,
-    ocrText: `[Metadata OCR]\nNama file: ${filename}\nUkuran file: ${sizeInKb} KB\nTipe konten: base64`
-  });
 });
 
 // ── GET /api/tts ─────────────────────────────────────
@@ -1296,6 +1531,474 @@ app.post('/api/admin/users/whitelist-remove', (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// ── Meeting Recorder API ──────────────────────────────
+
+// Helper function to cleanup audio files older than 15 days
+function cleanupOldAudio() {
+  try {
+    const recordingsDir = path.join(__dirname, '..', 'rag', 'documents', 'recordings');
+    if (!fs.existsSync(recordingsDir)) return;
+    
+    const dirs = fs.readdirSync(recordingsDir);
+    const now = Date.now();
+    const fifteenDaysMs = 15 * 24 * 60 * 60 * 1000;
+    let deletedCount = 0;
+    
+    dirs.forEach(dirName => {
+      const dirPath = path.join(recordingsDir, dirName);
+      if (fs.statSync(dirPath).isDirectory()) {
+        const audioPath = path.join(dirPath, 'audio.webm');
+        if (fs.existsSync(audioPath)) {
+          const stats = fs.statSync(audioPath);
+          const age = now - stats.mtimeMs;
+          if (age > fifteenDaysMs) {
+            fs.unlinkSync(audioPath);
+            deletedCount++;
+            addLog('info', 'SYSTEM', `Audio lama otomatis dihapus (lebih dari 15 hari): ${audioPath}`);
+          }
+        }
+      }
+    });
+    if (deletedCount > 0) {
+      console.log(`[RECORDER] Automatically cleaned up ${deletedCount} old audio files.`);
+    }
+  } catch (err) {
+    console.error('[RECORDER] Error during old audio cleanup:', err.message);
+  }
+}
+
+// Generate DOCX buffer helper
+async function generateDocxBuffer(title, date, participants, duration, markdownContent) {
+  const paragraphs = [];
+  
+  // Document Header Title
+  paragraphs.push(
+    new Paragraph({
+      text: title,
+      heading: HeadingLevel.HEADING_1,
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 200 }
+    })
+  );
+  
+  // Metadata Info
+  paragraphs.push(new Paragraph({
+    children: [
+      new TextRun({ text: "Tanggal: ", bold: true }),
+      new TextRun(date),
+    ],
+    spacing: { after: 100 }
+  }));
+  
+  if (participants) {
+    paragraphs.push(new Paragraph({
+      children: [
+        new TextRun({ text: "Peserta: ", bold: true }),
+        new TextRun(participants),
+      ],
+      spacing: { after: 100 }
+    }));
+  }
+  
+  if (duration) {
+    const min = Math.floor(duration / 60);
+    const sec = duration % 60;
+    const durationStr = min > 0 ? `${min} menit ${sec} detik` : `${sec} detik`;
+    paragraphs.push(new Paragraph({
+      children: [
+        new TextRun({ text: "Durasi Rekaman: ", bold: true }),
+        new TextRun(durationStr),
+      ],
+      spacing: { after: 200 }
+    }));
+  }
+  
+  // Divider line
+  paragraphs.push(new Paragraph({
+    text: "──────────────────────────────────────────────────",
+    alignment: AlignmentType.CENTER,
+    spacing: { after: 200 }
+  }));
+  
+  // Parse Markdown lines
+  const lines = markdownContent.split('\n');
+  lines.forEach(line => {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      paragraphs.push(new Paragraph({ text: "", spacing: { after: 100 } }));
+      return;
+    }
+    
+    // Headings
+    if (trimmed.startsWith('# ')) {
+      paragraphs.push(new Paragraph({
+        text: trimmed.slice(2),
+        heading: HeadingLevel.HEADING_2,
+        spacing: { before: 200, after: 100 }
+      }));
+    } else if (trimmed.startsWith('## ')) {
+      paragraphs.push(new Paragraph({
+        text: trimmed.slice(3),
+        heading: HeadingLevel.HEADING_3,
+        spacing: { before: 180, after: 80 }
+      }));
+    } else if (trimmed.startsWith('### ')) {
+      paragraphs.push(new Paragraph({
+        text: trimmed.slice(4),
+        heading: HeadingLevel.HEADING_4,
+        spacing: { before: 150, after: 60 }
+      }));
+    } 
+    // Bullet lists
+    else if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+      paragraphs.push(new Paragraph({
+        text: trimmed.slice(2),
+        bullet: { level: 0 },
+        spacing: { after: 80 }
+      }));
+    }
+    // Numbered lists
+    else if (/^\d+\.\s/.test(trimmed)) {
+      const match = trimmed.match(/^(\d+)\.\s(.*)/);
+      if (match) {
+        paragraphs.push(new Paragraph({
+          text: match[2],
+          bullet: { level: 0 },
+          spacing: { after: 80 }
+        }));
+      } else {
+        paragraphs.push(new Paragraph({
+          text: trimmed,
+          spacing: { after: 80 }
+        }));
+      }
+    }
+    // Normal paragraphs
+    else {
+      const parts = [];
+      let lastIndex = 0;
+      const regex = /\*\*(.*?)\*\*/g;
+      let match;
+      
+      while ((match = regex.exec(trimmed)) !== null) {
+        if (match.index > lastIndex) {
+          parts.push(new TextRun(trimmed.substring(lastIndex, match.index)));
+        }
+        parts.push(new TextRun({
+          text: match[1],
+          bold: true
+        }));
+        lastIndex = regex.lastIndex;
+      }
+      
+      if (lastIndex < trimmed.length) {
+        parts.push(new TextRun(trimmed.substring(lastIndex)));
+      }
+      
+      paragraphs.push(new Paragraph({
+        children: parts.length > 0 ? parts : [new TextRun(trimmed)],
+        spacing: { after: 120 }
+      }));
+    }
+  });
+  
+  // Footer Divider
+  paragraphs.push(new Paragraph({
+    text: "──────────────────────────────────────────────────",
+    alignment: AlignmentType.CENTER,
+    spacing: { before: 200, after: 100 }
+  }));
+  
+  paragraphs.push(new Paragraph({
+    children: [
+      new TextRun({ text: "Dihasilkan otomatis oleh ", italic: true }),
+      new TextRun({ text: "Damz Agent Personal Assistant", bold: true, italic: true })
+    ],
+    alignment: AlignmentType.CENTER
+  }));
+
+  const doc = new Document({
+    sections: [{
+      properties: {},
+      children: paragraphs
+    }]
+  });
+  
+  return Packer.toBuffer(doc);
+}
+
+// 1. POST /api/recorder/save
+app.post('/api/recorder/save', (req, res) => {
+  try {
+    const { audio, transcript, meetingInfo } = req.body;
+    const timestamp = new Date().toISOString().replace(/[-:T.]/g, '').slice(0, 14);
+    const recordingId = `REC_${timestamp}`;
+    
+    const recordingsDir = path.join(__dirname, '..', 'rag', 'documents', 'recordings', recordingId);
+    fs.mkdirSync(recordingsDir, { recursive: true });
+    
+    if (audio) {
+      const audioBuffer = Buffer.from(audio.split(',')[1] || audio, 'base64');
+      fs.writeFileSync(path.join(recordingsDir, 'audio.webm'), audioBuffer);
+    }
+    
+    let plainTranscript = '';
+    if (transcript && Array.isArray(transcript)) {
+      plainTranscript = transcript.map(line => `[${line.timestamp}] ${line.text}`).join('\n');
+      fs.writeFileSync(path.join(recordingsDir, 'transcript.txt'), plainTranscript, 'utf8');
+      fs.writeFileSync(path.join(recordingsDir, 'transcript.json'), JSON.stringify(transcript, null, 2), 'utf8');
+    }
+    
+    const metadata = {
+      id: recordingId,
+      title: meetingInfo?.title || 'Rapat Tanpa Judul',
+      date: meetingInfo?.date || new Date().toLocaleDateString('id-ID'),
+      participants: meetingInfo?.participants || '',
+      duration: meetingInfo?.duration || 0,
+      createdAt: new Date().toISOString(),
+      hasMinutes: false
+    };
+    
+    fs.writeFileSync(path.join(recordingsDir, 'metadata.json'), JSON.stringify(metadata, null, 2), 'utf8');
+    
+    addLog('info', 'RECORDER', `Recording berhasil disimpan: ${recordingId} - ${metadata.title}`);
+    
+    // Automatically trigger cleanup
+    cleanupOldAudio();
+    
+    res.json({ success: true, recordingId, metadata });
+  } catch (err) {
+    addLog('error', 'RECORDER', `Gagal menyimpan recording: ${err.message}`);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 2. POST /api/recorder/generate-minutes
+app.post('/api/recorder/generate-minutes', async (req, res) => {
+  try {
+    const { recordingId, forceRegenerate } = req.body;
+    if (!recordingId) {
+      return res.status(400).json({ success: false, error: 'Missing recordingId' });
+    }
+    
+    const recordingDir = path.join(__dirname, '..', 'rag', 'documents', 'recordings', recordingId);
+    if (!fs.existsSync(recordingDir)) {
+      return res.status(404).json({ success: false, error: 'Recording not found' });
+    }
+    
+    const metadataPath = path.join(recordingDir, 'metadata.json');
+    const transcriptPath = path.join(recordingDir, 'transcript.txt');
+    const minutesPath = path.join(recordingDir, 'minutes.md');
+    const docxPath = path.join(recordingDir, 'minutes.docx');
+    
+    if (!fs.existsSync(metadataPath) || !fs.existsSync(transcriptPath)) {
+      return res.status(400).json({ success: false, error: 'Metadata or transcript file missing' });
+    }
+    
+    if (forceRegenerate !== true && fs.existsSync(minutesPath) && fs.existsSync(docxPath)) {
+      addLog('info', 'RECORDER', `Mengembalikan notulensi ter-cache untuk: ${recordingId}`);
+      const cachedMinutes = fs.readFileSync(minutesPath, 'utf8');
+      return res.json({ success: true, minutes: cachedMinutes });
+    }
+    
+    const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+    const plainTranscript = fs.readFileSync(transcriptPath, 'utf8');
+    
+    const baseUrl = getOllamaUrl();
+    const activeModel = getModelName();
+    
+    addLog('info', 'RECORDER', `Membuat notulensi rapat via model: ${activeModel}...`);
+    
+    const prompt = `Kamu adalah asisten AI yang bertugas membuat notulensi rapat (meeting minutes) profesional dalam bahasa Indonesia.
+Berikut adalah informasi rapat:
+Judul: ${metadata.title}
+Tanggal: ${metadata.date}
+Peserta: ${metadata.participants || 'Tidak ada info'}
+Durasi: ${metadata.duration} detik
+
+Gunakan transkrip percakapan berikut untuk membuat draf notulensi rapat yang terstruktur dengan format standar:
+1. Ringkasan Eksekutif (1-2 paragraf singkat)
+2. Poin-Poin Pembahasan (jelaskan apa saja yang dibahas secara mendetail)
+3. Keputusan Utama yang Diambil
+4. Rencana Tindak Lanjut (Action Items) dengan PIC (jika terdeteksi dari transkrip)
+5. Catatan Tambahan (jika ada)
+
+Harap tulis dengan bahasa Indonesia yang formal, rapi, dan profesional. Hanya keluarkan notulensinya saja tanpa kata pengantar atau penutup dari AI.
+
+Transkrip:
+${plainTranscript}`;
+
+    const response = await fetch(`${baseUrl}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: activeModel,
+        messages: [{ role: 'user', content: prompt }],
+        options: { temperature: 0.5 },
+        stream: false,
+      }),
+      signal: AbortSignal.timeout(180000), // 3 minutes timeout for long transcripts
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Ollama returned status ${response.status}`);
+    }
+    
+    const data = await response.json();
+    let cleanContent = data.message?.content || '';
+    cleanContent = cleanContent.replace(/[\u4e00-\u9fff\u3400-\u4dbf\u3000-\u303f\uff00-\uffef]/g, '').trim();
+    
+    // Save MD file
+    fs.writeFileSync(path.join(recordingDir, 'minutes.md'), cleanContent, 'utf8');
+    
+    // Save DOCX file
+    const docxBuffer = await generateDocxBuffer(
+      metadata.title,
+      metadata.date,
+      metadata.participants,
+      metadata.duration,
+      cleanContent
+    );
+    fs.writeFileSync(path.join(recordingDir, 'minutes.docx'), docxBuffer);
+    
+    // Update metadata
+    metadata.hasMinutes = true;
+    fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2), 'utf8');
+    
+    addLog('info', 'RECORDER', `Notulensi rapat berhasil dibuat untuk: ${recordingId}`);
+    
+    res.json({ success: true, minutes: cleanContent });
+  } catch (err) {
+    addLog('error', 'RECORDER', `Gagal membuat notulensi: ${err.message}`);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 3. GET /api/recorder/download/:recordingId
+app.get('/api/recorder/download/:recordingId', (req, res) => {
+  try {
+    const { recordingId } = req.params;
+    const recordingDir = path.join(__dirname, '..', 'rag', 'documents', 'recordings', recordingId);
+    const docxPath = path.join(recordingDir, 'minutes.docx');
+    
+    if (!fs.existsSync(docxPath)) {
+      return res.status(404).json({ success: false, error: 'File DOCX tidak ditemukan. Silakan generate notulensi terlebih dahulu.' });
+    }
+    
+    const metadataPath = path.join(recordingDir, 'metadata.json');
+    let title = 'Notulensi_Rapat';
+    if (fs.existsSync(metadataPath)) {
+      const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+      title = (metadata.title || 'Notulensi_Rapat').replace(/[^a-zA-Z0-9]/g, '_');
+    }
+    
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    res.setHeader('Content-Disposition', `attachment; filename="${title}.docx"`);
+    
+    const filestream = fs.createReadStream(docxPath);
+    filestream.pipe(res);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 4. GET /api/recorder/list
+app.get('/api/recorder/list', (req, res) => {
+  try {
+    const recordingsDir = path.join(__dirname, '..', 'rag', 'documents', 'recordings');
+    if (!fs.existsSync(recordingsDir)) {
+      return res.json({ success: true, recordings: [] });
+    }
+    
+    const dirs = fs.readdirSync(recordingsDir);
+    const list = [];
+    
+    dirs.forEach(dirName => {
+      const dirPath = path.join(recordingsDir, dirName);
+      if (fs.statSync(dirPath).isDirectory()) {
+        const metadataPath = path.join(dirPath, 'metadata.json');
+        if (fs.existsSync(metadataPath)) {
+          try {
+            const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+            // Check if audio file still exists
+            metadata.hasAudio = fs.existsSync(path.join(dirPath, 'audio.webm'));
+            list.push(metadata);
+          } catch (e) {}
+        }
+      }
+    });
+    
+    // Sort by createdAt descending (newest first)
+    list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    
+    res.json({ success: true, recordings: list });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// DELETE /api/recorder/:recordingId
+app.delete('/api/recorder/:recordingId', (req, res) => {
+  try {
+    const { recordingId } = req.params;
+    const recordingDir = path.join(__dirname, '..', 'rag', 'documents', 'recordings', recordingId);
+    if (fs.existsSync(recordingDir)) {
+      fs.rmSync(recordingDir, { recursive: true, force: true });
+      addLog('info', 'RECORDER', `Recording dihapus: ${recordingId}`);
+      res.json({ success: true });
+    } else {
+      res.status(404).json({ success: false, error: 'Recording not found' });
+    }
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 5. POST /api/recorder/save-to-knowledge
+app.post('/api/recorder/save-to-knowledge', (req, res) => {
+  try {
+    const { recordingId } = req.body;
+    if (!recordingId) {
+      return res.status(400).json({ success: false, error: 'Missing recordingId' });
+    }
+    
+    const recordingDir = path.join(__dirname, '..', 'rag', 'documents', 'recordings', recordingId);
+    const mdPath = path.join(recordingDir, 'minutes.md');
+    const metadataPath = path.join(recordingDir, 'metadata.json');
+    
+    if (!fs.existsSync(mdPath) || !fs.existsSync(metadataPath)) {
+      return res.status(400).json({ success: false, error: 'Minutes file or metadata missing' });
+    }
+    
+    const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+    const content = fs.readFileSync(mdPath, 'utf8');
+    
+    const ragDir = getWatchDir();
+    if (!fs.existsSync(ragDir)) {
+      fs.mkdirSync(ragDir, { recursive: true });
+    }
+    
+    // Build a filename: Notulensi - <title> - <date>.md
+    const safeTitle = (metadata.title || 'Notulensi').replace(/[^a-zA-Z0-9 ]/g, '').trim();
+    const safeDate = (metadata.date || new Date().toLocaleDateString('id-ID')).replace(/[^a-zA-Z0-9]/g, '_');
+    const filename = `Notulensi - ${safeTitle} - ${safeDate}.md`;
+    const targetPath = path.join(ragDir, filename);
+    
+    fs.writeFileSync(targetPath, content, 'utf8');
+    addLog('info', 'RAG', `Menyimpan notulensi rapat ke Knowledge Base: ${filename}`);
+    
+    res.json({ success: true, filename });
+  } catch (err) {
+    addLog('error', 'RAG', `Gagal menyimpan notulensi rapat ke Knowledge Base: ${err.message}`);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Initial cleanup on server start
+cleanupOldAudio();
+// Daily cleanup interval
+setInterval(cleanupOldAudio, 24 * 60 * 60 * 1000);
 
 // ── Start Server ─────────────────────────────────────
 app.listen(PORT, () => {

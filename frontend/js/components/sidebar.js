@@ -50,6 +50,8 @@ export function renderSidebar() {
     navItems.push({ id: 'users', label: 'Users', icon: ICONS.users });
   }
 
+  const savedTheme = localStorage.getItem('damz_theme') || 'dark';
+
   return `
     <div class="sidebar-logo">
       <div class="sidebar-logo-content">
@@ -75,18 +77,36 @@ export function renderSidebar() {
         </a>
       `).join('')}
     </nav>
-    <div class="sidebar-section-label" style="padding-bottom:6px">Output Mode</div>
-    <div class="output-mode-toggle">
-      <button class="output-mode-btn ${outputMode === 'both' ? 'active' : ''}" data-mode="both" title="Voice + Text">${ICONS.mic}<span>+</span>${ICONS.text}</button>
-      <button class="output-mode-btn ${outputMode === 'text' ? 'active' : ''}" data-mode="text" title="Text Only">${ICONS.text}</button>
-      <button class="output-mode-btn ${outputMode === 'voice' ? 'active' : ''}" data-mode="voice" title="Voice Only">${ICONS.volume}</button>
-    </div>
-
-    <div class="sidebar-logout-area">
-      <a class="sidebar-nav-item sidebar-logout-btn" id="sidebar-logout" href="#">
-        ${ICONS.power}
-        <span>Shutdown Agent</span>
-      </a>
+    <div class="sidebar-bottom">
+      <div class="sidebar-bottom-section">
+        <div class="sidebar-section-label" style="padding:8px 16px 6px">Output Mode</div>
+        <div class="output-mode-toggle">
+          <button class="output-mode-btn ${outputMode === 'both' ? 'active' : ''}" data-mode="both" title="Voice + Text">${ICONS.mic}<span>+</span>${ICONS.text}</button>
+          <button class="output-mode-btn ${outputMode === 'text' ? 'active' : ''}" data-mode="text" title="Text Only">${ICONS.text}</button>
+          <button class="output-mode-btn ${outputMode === 'voice' ? 'active' : ''}" data-mode="voice" title="Voice Only">${ICONS.volume}</button>
+        </div>
+      </div>
+      <div class="sidebar-bottom-section">
+        <div class="sidebar-section-label" style="padding:8px 16px 6px">Theme Mode</div>
+        <div class="theme-mode-toggle">
+          <button class="theme-mode-btn ${savedTheme === 'dark' ? 'active' : ''}" data-theme="dark" title="Dark Mode">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+            <span>Dark</span>
+          </button>
+          <button class="theme-mode-btn ${savedTheme === 'clean' ? 'active' : ''}" data-theme="clean" title="Clean Mode">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+            <span>Clean</span>
+          </button>
+        </div>
+      </div>
+      <div class="sidebar-bottom-section">
+        <div class="sidebar-logout-area">
+          <a class="sidebar-nav-item sidebar-logout-btn" id="sidebar-logout" href="#">
+            ${ICONS.power}
+            <span>Shutdown Agent</span>
+          </a>
+        </div>
+      </div>
     </div>
     <div class="sidebar-status" id="sidebar-status">
       <div class="sidebar-status-row">
@@ -139,6 +159,15 @@ export function mountSidebar(onNavigate) {
     });
   });
 
+  // Theme toggle
+  $$('.theme-mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const theme = btn.dataset.theme;
+      localStorage.setItem('damz_theme', theme);
+      document.documentElement.setAttribute('data-theme', theme);
+      $$('.theme-mode-btn').forEach(b => b.classList.toggle('active', b.dataset.theme === theme));
+    });
+  });
 }
 
 /** Highlight the active nav item. */

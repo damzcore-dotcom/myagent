@@ -4,6 +4,7 @@
  */
 
 import { $, sleep } from '../utils/helpers.js';
+import { API_BASE } from '../utils/config.js';
 
 let errorTimeout = null;
 
@@ -268,7 +269,7 @@ export function mount(onLogin) {
         }
 
         // Try better-auth API
-        const res = await fetch('http://127.0.0.1:3001/api/auth/sign-in/email', {
+        const res = await fetch(`${API_BASE}/api/auth/sign-in/email`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password }),
@@ -306,7 +307,7 @@ export function mount(onLogin) {
           throw new Error('Kata sandi harus terdiri dari minimal 8 karakter');
         }
 
-        const res = await fetch('http://127.0.0.1:3001/api/auth/sign-up/email', {
+        const res = await fetch(`${API_BASE}/api/auth/sign-up/email`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name, email, password }),
@@ -426,13 +427,13 @@ export function getCurrentUser() {
 /** Log out — clear session. */
 export async function logout() {
   try {
-    await fetch('http://127.0.0.1:3001/api/model/unload', { method: 'POST' });
+    await fetch(`${API_BASE}/api/model/unload`, { method: 'POST' });
   } catch (err) {
     console.warn('[MODEL UNLOAD ERROR]', err.message);
   }
   localStorage.removeItem('damz_session');
   // Try to call better-auth logout
-  fetch('http://127.0.0.1:3001/api/auth/sign-out', { method: 'POST', credentials: 'include' }).catch(() => {});
+  fetch(`${API_BASE}/api/auth/sign-out`, { method: 'POST', credentials: 'include' }).catch(() => {});
 }
 
 /** Display a premium dark themed modal dialog instead of browser alert() */

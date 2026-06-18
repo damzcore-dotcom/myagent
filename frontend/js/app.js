@@ -4,6 +4,7 @@
  */
 
 import { $, formatDuration, showModalConfirm } from './utils/helpers.js';
+import { API_BASE } from './utils/config.js';
 import { renderSidebar, mountSidebar, setActiveNavItem, updateSidebarStatus } from './components/sidebar.js';
 
 // Page modules
@@ -89,7 +90,7 @@ function getActiveModel() {
 
 async function updateStatus() {
   try {
-    const res = await fetch('http://127.0.0.1:3001/api/system/metrics');
+    const res = await fetch(`${API_BASE}/api/system/metrics`);
     if (res.ok) {
       const metrics = await res.json();
       updateSidebarStatus({
@@ -209,7 +210,7 @@ function showLogin() {
 
 function showApp() {
   // Trigger loading model in background on server
-  fetch('http://127.0.0.1:3001/api/model/load', { method: 'POST' })
+  fetch(`${API_BASE}/api/model/load`, { method: 'POST' })
     .catch(e => console.warn('[MODEL LOAD ERROR]', e.message));
 
   const sidebar = $('#sidebar');
@@ -326,19 +327,9 @@ function getPageFromHash() {
 
 /* ── Initialization ────────────────────────────────── */
 function init() {
-  // Initialize and mount global theme toggle buttons
+  // Initialize theme mode
   const savedTheme = localStorage.getItem('damz_theme') || 'dark';
   document.documentElement.setAttribute('data-theme', savedTheme);
-  const themeBtns = document.querySelectorAll('.global-theme-toggle .theme-btn');
-  themeBtns.forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.theme === savedTheme);
-    btn.addEventListener('click', () => {
-      const theme = btn.dataset.theme;
-      localStorage.setItem('damz_theme', theme);
-      document.documentElement.setAttribute('data-theme', theme);
-      themeBtns.forEach(b => b.classList.toggle('active', b.dataset.theme === theme));
-    });
-  });
 
   const sidebar = $('#sidebar');
   const main = $('#main-content');
@@ -360,7 +351,7 @@ function init() {
     showApp();
     
     // Background validation of session token on startup
-    fetch('http://127.0.0.1:3001/api/auth/get-session')
+    fetch(`${API_BASE}/api/auth/get-session`)
       .then(res => {
         if (!res.ok) {
           localStorage.removeItem('damz_session');

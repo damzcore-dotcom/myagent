@@ -5,6 +5,7 @@
  */
 
 import { $, $$, animateValue, formatDuration } from '../utils/helpers.js';
+import { API_BASE } from '../utils/config.js';
 import { createGauge, updateGauge } from '../components/gauge.js';
 
 let metricsInterval = null;
@@ -342,7 +343,7 @@ function cleanCpuModel(model) {
 async function fetchStatsAndMetrics() {
   // 1. Uptime & Gauges
   try {
-    const res = await fetch('http://127.0.0.1:3001/api/system/metrics');
+    const res = await fetch(`${API_BASE}/api/system/metrics`);
     if (res.ok) {
       const data = await res.json();
       
@@ -363,7 +364,7 @@ async function fetchStatsAndMetrics() {
 
   // 2. Document count
   try {
-    const res = await fetch('http://127.0.0.1:3001/api/documents');
+    const res = await fetch(`${API_BASE}/api/documents`);
     if (res.ok) {
       const data = await res.json();
       if (data.success && data.documents) {
@@ -385,7 +386,7 @@ async function fetchStatsAndMetrics() {
 
   // 4. Activity Logs
   try {
-    const res = await fetch('http://127.0.0.1:3001/api/logs');
+    const res = await fetch(`${API_BASE}/api/logs`);
     if (res.ok) {
       const data = await res.json();
       if (data.success && data.logs) {
@@ -471,7 +472,7 @@ export function mount() {
       
       // Request restart via backend or simulate re-connect
       try {
-        await fetch('http://127.0.0.1:3001/api/ollama/test');
+        await fetch(`${API_BASE}/api/ollama/test`);
       } catch (e) {}
       
       await new Promise(r => setTimeout(r, 1500));

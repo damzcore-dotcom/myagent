@@ -11,6 +11,8 @@
   "dependencies": {
     "better-auth": "^1.2.0",
     "cors": "^2.8.5",
-    "express": "^4.21.0"
+    "docx": "^9.7.1",
+    "express": "^4.21.0",
+    "officeparser": "^7.2.1"
   }
 }

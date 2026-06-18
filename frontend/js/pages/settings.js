@@ -4,6 +4,7 @@
  */
 
 import { $, $$, sleep, showModalConfirm } from '../utils/helpers.js';
+import { API_BASE } from '../utils/config.js';
 
 const SETTINGS_DEFAULTS = {
   ollama: {
@@ -247,7 +248,7 @@ function showToast(message, type = 'success') {
 
 async function fetchConfigAndModels() {
   try {
-    const res = await fetch('http://127.0.0.1:3001/api/config');
+    const res = await fetch(`${API_BASE}/api/config`);
     if (res.ok) {
       const config = await res.json();
       
@@ -325,7 +326,7 @@ async function fetchConfigAndModels() {
   }
   
   try {
-    const res = await fetch('http://127.0.0.1:3001/api/ollama/models');
+    const res = await fetch(`${API_BASE}/api/ollama/models`);
     if (res.ok) {
       const data = await res.json();
       if (data.success && data.models && data.models.length > 0) {
@@ -409,7 +410,7 @@ export function mount() {
       }
 
       try {
-        const res = await fetch(`http://127.0.0.1:3001/api/ollama/test?url=${encodeURIComponent(baseUrl)}`);
+        const res = await fetch(`${API_BASE}/api/ollama/test?url=${encodeURIComponent(baseUrl)}`);
         const data = await res.json();
         if (data.success) {
           if (badge) { badge.className = 'badge badge--green'; badge.textContent = '✓ Connected'; }
@@ -445,7 +446,7 @@ export function mount() {
 
       // Apply model to backend config
       try {
-        await fetch('http://127.0.0.1:3001/api/config', {
+        await fetch(`${API_BASE}/api/config`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -476,7 +477,7 @@ export function mount() {
       refreshBtn.disabled = true;
       
       try {
-        const res = await fetch('http://127.0.0.1:3001/api/ollama/models');
+        const res = await fetch(`${API_BASE}/api/ollama/models`);
         if (res.ok) {
           const data = await res.json();
           if (data.success && data.models) {
@@ -532,7 +533,7 @@ export function mount() {
       if (pullProgressText) pullProgressText.textContent = `Downloading ${modelName}... (mohon tunggu)`;
 
       try {
-        const res = await fetch('http://127.0.0.1:3001/api/ollama/pull', {
+        const res = await fetch(`${API_BASE}/api/ollama/pull`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: modelName })
@@ -563,12 +564,12 @@ export function mount() {
     if (!exists) {
       ollamaModels.push({
         name: modelName,
-        size: parseFloat((1.5 + Math.random() * 6).toFixed(1)),
+        size: 0,
         family: modelName.split(':')[0],
         quantization: 'Q4_0',
-        parameterSize: modelName.includes('b') ? modelName.split(':').pop().toUpperCase() : '7B',
+        parameterSize: modelName.includes('b') ? modelName.split(':').pop().toUpperCase() : '?',
         isActive: false,
-        tags: ['FAST']
+        tags: ['NEW']
       });
     }
 
@@ -636,7 +637,7 @@ export function mount() {
       }
 
       try {
-        const res = await fetch('http://127.0.0.1:3001/api/config', {
+        const res = await fetch(`${API_BASE}/api/config`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

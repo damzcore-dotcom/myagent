@@ -1354,4 +1354,347 @@
   }
 }
 
+/* ── Meeting Recorder Styles ────────────────────────── */
+
+.chat-mode-switcher {
+  display: flex;
+  background: var(--surface-medium);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 8px);
+  padding: 2px;
+  gap: 2px;
+}
+
+.chat-mode-switcher button {
+  background: transparent;
+  border: none;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm, 4px);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chat-mode-switcher button:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.chat-mode-switcher button.active {
+  color: var(--text-primary);
+  background: var(--surface-highest);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.recorder-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: var(--space-4) var(--space-6);
+  gap: var(--space-4);
+  overflow-y: auto;
+  background: var(--bg-app);
+}
+
+.recorder-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+@media (min-width: 1024px) {
+  .recorder-layout.split {
+    grid-template-columns: 1fr 1fr;
+    max-width: 1200px;
+  }
+}
+
+.recorder-card {
+  background: var(--surface-lowest);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg, 12px);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.recorder-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: var(--space-2);
+  margin-bottom: var(--space-1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.meeting-info-form {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-3);
+}
+
+@media (min-width: 600px) {
+  .meeting-info-form {
+    grid-template-columns: 2fr 1.5fr;
+  }
+  .meeting-info-form .full-width {
+    grid-column: span 2;
+  }
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.form-group input {
+  background: var(--surface-medium);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 6px);
+  padding: 8px 12px;
+  color: var(--text-primary);
+  font-size: 13px;
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus {
+  border-color: var(--primary);
+  outline: none;
+}
+
+.transcript-area {
+  height: 250px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  background: var(--surface-medium);
+  border-radius: var(--radius-md, 6px);
+  padding: var(--space-3);
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  line-height: 1.6;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.transcript-line {
+  display: flex;
+  gap: var(--space-2);
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
+  padding-bottom: 4px;
+}
+
+.transcript-timestamp {
+  color: var(--primary);
+  font-weight: 600;
+  flex-shrink: 0;
+  width: 70px;
+}
+
+.transcript-text {
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.transcript-empty {
+  color: var(--text-muted);
+  text-align: center;
+  margin: auto;
+  font-style: italic;
+}
+
+.recording-controls-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+}
+
+.timer-display {
+  font-family: var(--font-mono, monospace);
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.rec-pulse-dot {
+  width: 12px;
+  height: 12px;
+  background-color: var(--danger, #ef4444);
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+}
+
+.recording-active .rec-pulse-dot {
+  animation: pulse-red 1.5s infinite;
+}
+
+@keyframes pulse-red {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+.control-buttons-row {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.audio-level-container {
+  width: 100%;
+  max-width: 400px;
+  height: 8px;
+  background: var(--surface-medium);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid var(--border);
+}
+
+.audio-level-bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--primary) 70%, var(--danger, #ef4444) 100%);
+  transition: width 0.1s ease;
+}
+
+.minutes-preview-area {
+  min-height: 200px;
+  max-height: 500px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  background: var(--surface-medium);
+  border-radius: var(--radius-md, 6px);
+  padding: var(--space-4);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+
+.minutes-preview-area h1, 
+.minutes-preview-area h2, 
+.minutes-preview-area h3 {
+  color: var(--text-primary);
+  margin-top: var(--space-3);
+  margin-bottom: var(--space-2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 4px;
+}
+
+.minutes-preview-area h1 { font-size: 18px; }
+.minutes-preview-area h2 { font-size: 15px; }
+.minutes-preview-area h3 { font-size: 13px; }
+
+.minutes-preview-area ul, 
+.minutes-preview-area ol {
+  padding-left: var(--space-4);
+  margin-bottom: var(--space-3);
+}
+
+.minutes-preview-area li {
+  margin-bottom: 4px;
+}
+
+.minutes-preview-area p {
+  margin-bottom: var(--space-3);
+}
+
+.minutes-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.minutes-actions .btn {
+  flex: 1;
+  min-width: 140px;
+}
+
+.recordings-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface-medium);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 6px);
+  padding: var(--space-3);
+  transition: all 0.2s ease;
+}
+
+.history-item:hover {
+  border-color: var(--primary);
+  background: var(--surface-highest);
+}
+
+.history-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.history-item-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.history-item-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  display: flex;
+  gap: 12px;
+}
+
+.history-item-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+
 
