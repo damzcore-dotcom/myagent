@@ -58,16 +58,17 @@ const dbPath = path.join(dataDir, 'damz_auth_db.json');
 function readDB() {
   try {
     if (!fs.existsSync(dbPath)) {
-      const initial = { user: [], session: [], account: [], verification: [], pending_users: [] };
+      const initial = { user: [], session: [], account: [], verification: [], pending_users: [], rejected_users: [] };
       fs.writeFileSync(dbPath, JSON.stringify(initial, null, 2));
       return initial;
     }
     const db = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
     if (!db.pending_users) db.pending_users = [];
+    if (!db.rejected_users) db.rejected_users = [];
     return db;
   } catch (err) {
     console.error('[AUTH DB ERROR] Failed to read JSON DB, returning empty schema.', err);
-    return { user: [], session: [], account: [], verification: [], pending_users: [] };
+    return { user: [], session: [], account: [], verification: [], pending_users: [], rejected_users: [] };
   }
 }
 
@@ -970,11 +971,18 @@ app.get('/api/admin/users', (req, res) => {
       createdAt: u.createdAt
     }));
 
+    const rejectedUsers = (db.rejected_users || []).map(u => ({
+      name: u.name,
+      email: u.email,
+      rejectedAt: u.rejectedAt
+    }));
+
     res.json({
       success: true,
       allowed: allowedEmails,
       users: activeUsers,
-      pending: pendingUsers
+      pending: pendingUsers,
+      rejected: rejectedUsers
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1045,6 +1053,7 @@ app.post('/api/admin/users/approve', async (req, res) => {
 
     // 3. Remove from pending_users list
     db.pending_users.splice(pendingIndex, 1);
+    db.rejected_users = (db.rejected_users || []).filter(u => u.email.toLowerCase() !== email.toLowerCase());
     writeDB(db);
 
     addLog('info', 'SYSTEM', `Admin menyetujui pendaftaran user baru: ${pendingUser.email}`);
@@ -1067,6 +1076,17 @@ app.post('/api/admin/users/reject', (req, res) => {
     const db = readDB();
     const pendingIndex = db.pending_users.findIndex(u => u.email.toLowerCase() === email.toLowerCase());
     if (pendingIndex !== -1) {
+      const pendingUser = db.pending_users[pendingIndex];
+      if (!db.rejected_users) db.rejected_users = [];
+      
+      if (!db.rejected_users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
+        db.rejected_users.push({
+          email: pendingUser.email,
+          name: pendingUser.name,
+          rejectedAt: new Date().toISOString()
+        });
+      }
+
       db.pending_users.splice(pendingIndex, 1);
       writeDB(db);
       addLog('info', 'SYSTEM', `Admin menolak permohonan pendaftaran: ${email}`);
@@ -1102,6 +1122,11 @@ app.post('/api/admin/users/whitelist-add', (req, res) => {
     if (!allowed.includes(emailClean)) {
       allowed.push(emailClean);
       updateWhitelistInConfig(allowed);
+      
+      const db = readDB();
+      db.rejected_users = (db.rejected_users || []).filter(u => u.email.toLowerCase() !== emailClean);
+      writeDB(db);
+      
       addLog('info', 'SYSTEM', `Admin menambahkan email baru ke whitelist: ${emailClean}`);
     }
 

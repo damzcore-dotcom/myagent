@@ -152,10 +152,31 @@
   color: var(--text-muted);
   font-family: var(--font-mono);
   font-size: 11px;
-  padding: 6px 0;
+  padding: 8px 0;
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+
+.output-mode-btn svg {
+  width: 13px;
+  height: 13px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  flex-shrink: 0;
+}
+
+.output-mode-btn span {
+  font-size: 10px;
+  font-weight: bold;
+  color: inherit;
+  line-height: 1;
+  opacity: 0.8;
 }
 
 .output-mode-btn:hover {
@@ -164,6 +185,44 @@
 }
 
 .output-mode-btn.active {
+  background: var(--primary-container);
+  color: var(--on-primary) !important;
+}
+
+/* ── Theme Mode Toggle ──────────────────────────────── */
+.theme-mode-toggle {
+  display: flex;
+  gap: 4px;
+  background: var(--bg-base);
+  border-radius: var(--radius-md);
+  margin: 0 12px 12px;
+  padding: 3px;
+  border: 1px solid var(--border);
+}
+
+.theme-mode-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 6px 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.theme-mode-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+}
+
+.theme-mode-btn.active {
   background: var(--primary-container);
   color: #fff;
 }
@@ -273,8 +332,8 @@
 }
 
 @keyframes glow {
-  0%, 100% { box-shadow: 0 0 6px rgba(35,134,54,0.3); }
-  50%      { box-shadow: 0 0 20px rgba(35,134,54,0.5); }
+  0%, 100% { box-shadow: 0 0 6px var(--primary-glow-subtle); }
+  50%      { box-shadow: 0 0 20px var(--primary-glow); }
 }
 
 @keyframes ringPulse {
@@ -431,5 +490,78 @@ html, body {
     flex: 1;
     justify-content: center;
   }
+
+  .global-theme-toggle {
+    right: 80px;
+    top: 12px;
+  }
 }
+
+/* ── Global Floating Theme Toggle ───────────────────── */
+.global-theme-toggle {
+  position: fixed;
+  top: 14px;
+  right: 16px;
+  z-index: 999;
+  display: flex;
+  gap: 4px;
+  background: rgba(22, 27, 34, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  padding: 3px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  transition: all var(--transition-normal);
+}
+
+:root[data-theme="clean"] .global-theme-toggle {
+  background: rgba(255, 255, 255, 0.65);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.global-theme-toggle .theme-btn {
+  background: transparent;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  transition: all var(--transition-normal);
+  padding: 0;
+}
+
+.global-theme-toggle .theme-btn svg {
+  width: 15px;
+  height: 15px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2.2px;
+  transition: transform var(--transition-normal), color var(--transition-fast);
+}
+
+.global-theme-toggle .theme-btn:hover {
+  color: var(--text-primary);
+  background: var(--surface-container);
+}
+
+.global-theme-toggle .theme-btn:hover svg {
+  transform: scale(1.1);
+}
+
+.global-theme-toggle .theme-btn.active {
+  background: var(--primary-container);
+  color: var(--on-primary) !important;
+  box-shadow: 0 2px 8px var(--primary-glow);
+}
+
+.global-theme-toggle .theme-btn.active svg {
+  fill: var(--on-primary);
+  transform: scale(1.05);
+}
+
 

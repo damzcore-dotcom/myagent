@@ -25,9 +25,9 @@
 
 .btn-primary {
   background: var(--primary-container);
-  color: var(--text-primary);
+  color: var(--on-primary);
 }
-.btn-primary:hover { background: #2ea043; }
+.btn-primary:hover { background: var(--primary-hover); }
 .btn-primary:active { transform: scale(0.97); }
 
 .btn-secondary {
@@ -202,7 +202,7 @@
   gap: 4px;
 }
 
-.badge--green  { background: rgba(35,134,54,0.15); color: var(--primary); }
+.badge--green  { background: var(--primary-bg-subtle); color: var(--primary); }
 .badge--blue   { background: rgba(56,166,255,0.15); color: var(--accent-blue); }
 .badge--yellow { background: rgba(210,153,34,0.15); color: var(--status-yellow); }
 .badge--red    { background: rgba(248,81,73,0.15); color: var(--status-red); }
@@ -247,7 +247,7 @@
 .upload-zone:hover,
 .upload-zone--active {
   border-color: var(--accent-green);
-  background: rgba(35,134,54,0.03);
+  background: var(--primary-bg-lowest);
 }
 
 .upload-zone-icon {
@@ -333,33 +333,45 @@
 }
 
 .gauge-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   text-align: center;
   z-index: 1;
+  width: 80px;
 }
 
 .gauge-value {
   font-family: var(--font-mono);
-  font-size: 26px;
+  font-size: 22px;
   font-weight: 700;
   color: var(--text-primary);
+  line-height: 1.1;
 }
 
 .gauge-label {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  margin-top: 2px;
+  margin-top: 1px;
+  line-height: 1.1;
 }
 
 .gauge-subtitle {
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: 8px;
   color: var(--text-muted);
   margin-top: 2px;
   opacity: 0.8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  text-align: center;
 }
 
 /* ── Chat ───────────────────────────────────────────── */
@@ -564,9 +576,9 @@
   border-radius: 50%;
   opacity: 0.7;
 }
-.terminal-dot--red    { background: #f85149; }
-.terminal-dot--yellow { background: #d29922; }
-.terminal-dot--green  { background: #238636; }
+.terminal-dot--red    { background: var(--status-red); }
+.terminal-dot--yellow { background: var(--status-yellow); }
+.terminal-dot--green  { background: var(--status-green); }
 
 .terminal-title {
   font-size: 12px;

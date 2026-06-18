@@ -58,7 +58,7 @@
   border-radius: 50%;
   background: var(--status-green);
   flex-shrink: 0;
-  box-shadow: 0 0 8px rgba(35,134,54,0.5);
+  box-shadow: 0 0 8px var(--primary-glow);
 }
 
 .page-dashboard .status-hero-text {
@@ -130,7 +130,7 @@
 .page-dashboard .model-info-value {
   font-family: var(--font-mono);
   font-size: 13px;
-  color: var(--primary);
+  color: var(--text-primary);
   font-weight: 600;
 }
 
@@ -335,7 +335,7 @@
 .page-logs .log-filter-btn.active {
   border-color: var(--accent-green);
   color: var(--primary);
-  background: rgba(35,134,54,0.08);
+  background: var(--primary-bg-hover);
 }
 
 .page-logs .logs-search {
@@ -370,7 +370,7 @@
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse at 30% 20%, rgba(35,134,54,0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 30% 20%, var(--primary-bg-hover) 0%, transparent 50%),
     radial-gradient(ellipse at 70% 80%, rgba(88,166,255,0.06) 0%, transparent 50%);
 }
 
@@ -429,7 +429,7 @@
   align-items: center;
   justify-content: center;
   margin-bottom: var(--space-3);
-  box-shadow: 0 0 20px rgba(35,134,54,0.25);
+  box-shadow: 0 0 20px var(--primary-glow-weak);
 }
 
 .login-logo-icon svg {
@@ -543,8 +543,8 @@
 }
 
 .login-success {
-  background: rgba(35,134,54,0.15);
-  border: 1px solid rgba(35,134,54,0.3);
+  background: var(--primary-bg-subtle);
+  border: 1px solid var(--primary-border-subtle);
   border-radius: var(--radius);
   padding: 10px 14px;
   font-family: var(--font-mono);
@@ -597,7 +597,7 @@
   height: 6px;
   border-radius: 50%;
   background: var(--status-green);
-  box-shadow: 0 0 6px rgba(35,134,54,0.5);
+  box-shadow: 0 0 6px var(--primary-glow);
 }
 
 .login-footer-ascii {
@@ -624,7 +624,7 @@
   transition: all var(--transition-fast);
 }
 .hotkey-toggle--on {
-  background: rgba(35, 134, 54, 0.15);
+  background: var(--primary-bg-subtle);
   color: var(--primary);
   border: 1px solid var(--primary-container);
 }
@@ -697,7 +697,7 @@
 }
 .quick-action-card:hover {
   border-color: var(--primary-container);
-  box-shadow: 0 0 12px rgba(35, 134, 54, 0.15);
+  box-shadow: 0 0 12px var(--primary-bg-subtle);
   transform: translateY(-2px);
 }
 .quick-action-card:active {
@@ -810,7 +810,7 @@
 }
 .page-settings .model-card--active {
   border-color: var(--primary-container);
-  background: rgba(35, 134, 54, 0.03);
+  background: var(--primary-bg-lowest);
 }
 
 .page-settings .model-card-name {

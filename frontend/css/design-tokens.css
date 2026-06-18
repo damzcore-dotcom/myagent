@@ -30,7 +30,17 @@
   /* ── Primary (Green) ────────────────────────────── */
   --primary:            #7bdb80;
   --primary-container:  #238636;
-  --on-primary:         #00390e;
+  --on-primary:         #ffffff;
+  --primary-hover:      #2ea043;
+
+  /* Translucent & Glow variables mapping to green primary */
+  --primary-glow:             rgba(35, 134, 54, 0.5);
+  --primary-glow-weak:        rgba(35, 134, 54, 0.25);
+  --primary-glow-subtle:      rgba(35, 134, 54, 0.3);
+  --primary-bg-subtle:        rgba(35, 134, 54, 0.15);
+  --primary-bg-hover:         rgba(35, 134, 54, 0.08);
+  --primary-bg-lowest:        rgba(35, 134, 54, 0.03);
+  --primary-border-subtle:    rgba(35, 134, 54, 0.3);
 
   /* ── Secondary ──────────────────────────────────── */
   --secondary:          #c1c7d0;
@@ -86,3 +96,64 @@
   --transition-normal: 0.2s ease;
   --transition-slow:   0.35s ease;
 }
+
+/* ── Clean Mode (White & Orange Theme) ────────────────── */
+:root[data-theme="clean"] {
+  /* Surfaces */
+  --surface:            #ffffff;
+  --surface-dim:        #fafafd;
+  --surface-bright:     #ffffff;
+  --surface-lowest:     #f0f2f5;
+  --surface-low:        #f6f8fa;
+  --surface-container:  #edf1f5;
+  --surface-high:       #e4e9f0;
+  --surface-highest:    #d0d7de;
+  --on-surface:         #1b1f24;
+  --on-surface-variant: #57606a;
+
+  /* Semantic Backgrounds */
+  --bg-base:            #f5f7fa;
+  --bg-elevated:        #ffffff;
+  --border:             #dbe1e8;
+  --border-active:      #e65100;
+
+  /* Text */
+  --text-primary:       #1b1f24;
+  --text-muted:         #626f7d;
+
+  /* Primary (Elegant Burnt Orange) */
+  --primary:            #d44a00;
+  --primary-container:  #e65100;
+  --on-primary:         #ffffff;
+  --primary-hover:      #ff5a00;
+
+  /* Translucent & Glow variables mapping to orange primary */
+  --primary-glow:             rgba(212, 74, 0, 0.5);
+  --primary-glow-weak:        rgba(212, 74, 0, 0.25);
+  --primary-glow-subtle:      rgba(212, 74, 0, 0.3);
+  --primary-bg-subtle:        rgba(212, 74, 0, 0.15);
+  --primary-bg-hover:         rgba(212, 74, 0, 0.08);
+  --primary-bg-lowest:        rgba(212, 74, 0, 0.03);
+  --primary-border-subtle:    rgba(212, 74, 0, 0.3);
+
+  /* Secondary */
+  --secondary:          #57606a;
+  --secondary-container:#edf1f5;
+
+  /* Tertiary Accents */
+  --tertiary:           #f27438;
+  --tertiary-container: #b33c00;
+  --accent-blue:        #0969da; /* Beautiful Cobalt Blue */
+  --accent-green:       var(--primary); /* Orange for status indicators in clean mode */
+
+  /* Status */
+  --status-green:       var(--primary); /* Orange for success status in clean mode */
+  --status-red:         #cf222e;
+  --status-yellow:      #9a6700;
+  --accent-red:         #cf222e;
+
+  /* Error */
+  --error:              #ffebe9;
+  --error-container:    #cf222e;
+}
+

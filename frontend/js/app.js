@@ -302,6 +302,20 @@ function getPageFromHash() {
 
 /* ── Initialization ────────────────────────────────── */
 function init() {
+  // Initialize and mount global theme toggle buttons
+  const savedTheme = localStorage.getItem('damz_theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', savedTheme);
+  const themeBtns = document.querySelectorAll('.global-theme-toggle .theme-btn');
+  themeBtns.forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.theme === savedTheme);
+    btn.addEventListener('click', () => {
+      const theme = btn.dataset.theme;
+      localStorage.setItem('damz_theme', theme);
+      document.documentElement.setAttribute('data-theme', theme);
+      themeBtns.forEach(b => b.classList.toggle('active', b.dataset.theme === theme));
+    });
+  });
+
   const sidebar = $('#sidebar');
   const main = $('#main-content');
 

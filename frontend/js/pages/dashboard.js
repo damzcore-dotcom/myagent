@@ -320,6 +320,25 @@ function updateStatusHero(agentStatus) {
   }
 }
 
+function cleanCpuModel(model) {
+  if (!model) return 'CPU';
+  return model
+    .replace(/\(R\)/gi, '')
+    .replace(/\(TM\)/gi, '')
+    .replace(/\b\d+(?:th|nd|rd|st)?\s+Gen\b/gi, '')
+    .replace(/Intel/gi, '')
+    .replace(/Core/gi, '')
+    .replace(/CPU/gi, '')
+    .replace(/Xeon/gi, 'Xeon')
+    .replace(/Processor/gi, '')
+    .replace(/Graphics/gi, '')
+    .replace(/\b\d+-Core\b/gi, '')
+    .replace(/with/gi, '')
+    .replace(/@\s*\d+(\.\d+)?\s*[Gg][Hh][Zz]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 async function fetchStatsAndMetrics() {
   // 1. Uptime & Gauges
   try {
@@ -327,9 +346,9 @@ async function fetchStatsAndMetrics() {
     if (res.ok) {
       const data = await res.json();
       
-      updateGauge('gauge-cpu', data.cpu.usage, data.cpu.model);
-      updateGauge('gauge-ram', data.ram.percent, `${data.ram.used_gb} GB / ${data.ram.total_gb} GB`);
-      updateGauge('gauge-disk', data.disk.percent, `${data.disk.used_gb} GB / ${data.disk.total_gb} GB`);
+      updateGauge('gauge-cpu', data.cpu.usage, cleanCpuModel(data.cpu.model));
+      updateGauge('gauge-ram', data.ram.percent, `${data.ram.used_gb}/${data.ram.total_gb} GB`);
+      updateGauge('gauge-disk', data.disk.percent, `${data.disk.used_gb}/${data.disk.total_gb} GB`);
 
       const uptimeVal = $('#stat-uptime');
       if (uptimeVal) uptimeVal.textContent = formatDuration(data.uptime);
@@ -393,9 +412,9 @@ async function fetchStatsAndMetrics() {
 
 export function mount() {
   // Initialize gauges with 0
-  createGauge('gauge-cpu', { value: 0, label: 'CPU', subtitle: 'Intel Core' });
-  createGauge('gauge-ram', { value: 0, label: 'RAM', subtitle: '0 GB / 0 GB' });
-  createGauge('gauge-disk', { value: 0, label: 'Disk', subtitle: '0 GB / 0 GB' });
+  createGauge('gauge-cpu', { value: 0, label: 'CPU', subtitle: 'CPU' });
+  createGauge('gauge-ram', { value: 0, label: 'RAM', subtitle: '0/0 GB' });
+  createGauge('gauge-disk', { value: 0, label: 'Disk', subtitle: '0/0 GB' });
 
   // Initial fetch
   fetchStatsAndMetrics();

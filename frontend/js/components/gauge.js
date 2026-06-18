@@ -80,7 +80,7 @@ export function updateGauge(containerId, value, subtitle) {
  * Green < 60, Yellow 60-80, Red > 80.
  */
 function getGaugeColor(value) {
-  if (value >= 80) return '#f85149';
-  if (value >= 60) return '#d29922';
-  return '#238636';
+  if (value >= 80) return 'var(--status-red)';
+  if (value >= 60) return 'var(--status-yellow)';
+  return 'var(--status-green)';
 }

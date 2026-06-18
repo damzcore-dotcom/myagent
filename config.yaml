@@ -3,7 +3,7 @@ agent:
   name: "Damz"
   system_prompt: "Kamu adalah Damz, asisten AI pribadi yang berjalan 100% lokal. Jawab singkat, jelas, dan santai. SELALU gunakan bahasa Indonesia. JANGAN PERNAH menyertakan karakter, tulisan, huruf Mandarin (China), atau menawarkan ganti bahasa di akhir jawaban Anda. Hindari markdown, bullet point, atau format panjang."
   memory_max_turns: 10
-  allowed_emails: "damzcore@gmail.com, test-1781762155987@damz.local"
+  allowed_emails: "damzcore@gmail.com"
 
 llm:
   model: "qwen2.5vl:7b"

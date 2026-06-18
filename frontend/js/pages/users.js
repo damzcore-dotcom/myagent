@@ -8,7 +8,8 @@ import { $, $$, createElement, formatDate } from '../utils/helpers.js';
 let listData = {
   allowed: [],
   users: [],
-  pending: []
+  pending: [],
+  rejected: []
 };
 
 export function render() {
@@ -27,42 +28,78 @@ export function render() {
         <button id="users-alert-close" class="btn-ghost" style="border: none; background: transparent; cursor: pointer; color: inherit; font-size: 14px; line-height: 1;">&times;</button>
       </div>
 
-      <div class="card-grid" style="grid-template-columns: 1.5fr 1fr; gap: var(--space-4); display: grid;">
-        <!-- Left: Pending Registrations -->
-        <div class="card flex flex-col" style="min-height: 450px;">
-          <div class="card-header" style="border-bottom: 1px solid var(--border); padding-bottom: var(--space-2); margin-bottom: var(--space-4);">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-                <line x1="19" y1="8" x2="19" y2="14"/>
-                <line x1="22" y1="11" x2="16" y2="11"/>
-              </svg>
-              <h2 class="card-title" style="color: var(--text-primary); font-size: 14px; margin: 0;">Pending Approvals</h2>
+      <div class="card-grid" style="grid-template-columns: 1.4fr 1fr; gap: var(--space-4); display: grid;">
+        <!-- Left Column: Pending Approvals and Registered Accounts -->
+        <div class="flex flex-col gap-4">
+          <!-- Pending Approvals -->
+          <div class="card flex flex-col" style="min-height: 320px;">
+            <div class="card-header" style="border-bottom: 1px solid var(--border); padding-bottom: var(--space-2); margin-bottom: var(--space-4);">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                  <circle cx="9" cy="7" r="4"/>
+                  <line x1="19" y1="8" x2="19" y2="14"/>
+                  <line x1="22" y1="11" x2="16" y2="11"/>
+                </svg>
+                <h2 class="card-title" style="color: var(--text-primary); font-size: 14px; margin: 0;">Pending Approvals</h2>
+              </div>
+              <span class="badge badge--yellow" id="pending-count-badge">0 Pending</span>
             </div>
-            <span class="badge badge--yellow" id="pending-count-badge">0 Pending</span>
+
+            <div class="card-body" style="flex: 1; overflow-y: auto; max-height: 250px;">
+              <div id="pending-empty-state" class="empty-state">
+                <div class="empty-state-icon" style="font-size: 28px; margin-bottom: 12px;">✔️</div>
+                <div class="empty-state-text">No pending registration requests</div>
+              </div>
+              <table class="data-table hidden" id="pending-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Requested At</th>
+                    <th style="text-align: right;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="pending-list"></tbody>
+              </table>
+            </div>
           </div>
 
-          <div class="card-body" style="flex: 1; overflow-y: auto;">
-            <div id="pending-empty-state" class="empty-state">
-              <div class="empty-state-icon" style="font-size: 32px; margin-bottom: 12px;">✔️</div>
-              <div class="empty-state-text">No pending registration requests</div>
+          <!-- Registered Accounts -->
+          <div class="card flex flex-col" style="min-height: 320px;">
+            <div class="card-header" style="border-bottom: 1px solid var(--border); padding-bottom: var(--space-2); margin-bottom: var(--space-4);">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                  <circle cx="9" cy="7" r="4"/>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+                <h2 class="card-title" style="color: var(--text-primary); font-size: 14px; margin: 0;">Registered Accounts</h2>
+              </div>
+              <span class="badge badge--green" id="registered-count-badge">0 Users</span>
             </div>
-            <table class="data-table hidden" id="pending-table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Requested At</th>
-                  <th style="text-align: right;">Actions</th>
-                </tr>
-              </thead>
-              <tbody id="pending-list"></tbody>
-            </table>
+
+            <div class="card-body" style="flex: 1; overflow-y: auto; max-height: 250px;">
+              <div id="registered-empty-state" class="empty-state">
+                <div class="empty-state-icon" style="font-size: 28px; margin-bottom: 12px;">👥</div>
+                <div class="empty-state-text">No registered accounts found</div>
+              </div>
+              <table class="data-table hidden" id="registered-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Registered At</th>
+                  </tr>
+                </thead>
+                <tbody id="registered-list"></tbody>
+              </table>
+            </div>
           </div>
         </div>
 
-        <!-- Right: Whitelist & Add Manual -->
+        <!-- Right Column: Whitelist, Add Manual, and Rejected History -->
         <div class="flex flex-col gap-4">
           <!-- Add Email to Whitelist Card -->
           <div class="card">
@@ -76,7 +113,7 @@ export function render() {
           </div>
 
           <!-- Active Whitelist Table Card -->
-          <div class="card flex flex-col" style="flex: 1; min-height: 300px;">
+          <div class="card flex flex-col" style="min-height: 250px;">
             <div class="card-header" style="border-bottom: 1px solid var(--border); padding-bottom: var(--space-2); margin-bottom: var(--space-3);">
               <div style="display: flex; align-items: center; gap: 8px;">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -86,7 +123,7 @@ export function render() {
               </div>
               <span class="badge badge--green" id="whitelist-count-badge">0 Allowed</span>
             </div>
-            <div class="card-body" style="flex: 1; overflow-y: auto; max-height: 280px;">
+            <div class="card-body" style="flex: 1; overflow-y: auto; max-height: 180px;">
               <table class="data-table" id="whitelist-table">
                 <thead>
                   <tr>
@@ -95,6 +132,36 @@ export function render() {
                   </tr>
                 </thead>
                 <tbody id="whitelist-list"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Rejected History Card -->
+          <div class="card flex flex-col" style="min-height: 250px;">
+            <div class="card-header" style="border-bottom: 1px solid var(--border); padding-bottom: var(--space-2); margin-bottom: var(--space-3);">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--status-red)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="15" y1="9" x2="9" y2="15"/>
+                  <line x1="9" y1="9" x2="15" y2="15"/>
+                </svg>
+                <h2 class="card-title" style="color: var(--text-primary); font-size: 14px; margin: 0;">Rejected History</h2>
+              </div>
+              <span class="badge badge--red" id="rejected-count-badge">0 Rejected</span>
+            </div>
+            <div class="card-body" style="flex: 1; overflow-y: auto; max-height: 180px;">
+              <div id="rejected-empty-state" class="empty-state">
+                <div class="empty-state-icon" style="font-size: 24px; margin-bottom: 8px;">🚫</div>
+                <div class="empty-state-text" style="font-size: 12px;">No rejected history</div>
+              </div>
+              <table class="data-table hidden" id="rejected-table">
+                <thead>
+                  <tr>
+                    <th>Email Address</th>
+                    <th style="text-align: right;">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="rejected-list"></tbody>
               </table>
             </div>
           </div>
@@ -140,6 +207,7 @@ async function fetchUsersData() {
       listData.allowed = data.allowed || [];
       listData.users = data.users || [];
       listData.pending = data.pending || [];
+      listData.rejected = data.rejected || [];
       updateUI();
     }
   } catch (err) {
@@ -154,6 +222,12 @@ function updateUI() {
 
   const whitelistCount = $('#whitelist-count-badge');
   if (whitelistCount) whitelistCount.textContent = `${listData.allowed.length} Allowed`;
+
+  const registeredCount = $('#registered-count-badge');
+  if (registeredCount) registeredCount.textContent = `${listData.users.length} Users`;
+
+  const rejectedCount = $('#rejected-count-badge');
+  if (rejectedCount) rejectedCount.textContent = `${listData.rejected.length} Rejected`;
 
   // Render Pending
   const pendingList = $('#pending-list');
@@ -195,6 +269,32 @@ function updateUI() {
     }
   }
 
+  // Render Registered Accounts
+  const registeredList = $('#registered-list');
+  const registeredTable = $('#registered-table');
+  const registeredEmpty = $('#registered-empty-state');
+
+  if (registeredList && registeredTable && registeredEmpty) {
+    registeredList.innerHTML = '';
+    if (listData.users.length === 0) {
+      registeredTable.classList.add('hidden');
+      registeredEmpty.classList.remove('hidden');
+    } else {
+      registeredTable.classList.remove('hidden');
+      registeredEmpty.classList.add('hidden');
+
+      listData.users.forEach(user => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${escapeHtml(user.name)}</td>
+          <td style="color: var(--text-muted); font-family: var(--font-mono); font-size: 12px;">${escapeHtml(user.email)}</td>
+          <td style="font-size: 12px; color: var(--text-muted);">${formatDate(user.createdAt)}</td>
+        `;
+        registeredList.appendChild(tr);
+      });
+    }
+  }
+
   // Render Whitelist
   const whitelistList = $('#whitelist-list');
   if (whitelistList) {
@@ -219,6 +319,43 @@ function updateUI() {
     $$('.btn-revoke', whitelistList).forEach(btn => {
       btn.addEventListener('click', () => handleRevoke(btn.dataset.email));
     });
+  }
+
+  // Render Rejected History
+  const rejectedList = $('#rejected-list');
+  const rejectedTable = $('#rejected-table');
+  const rejectedEmpty = $('#rejected-empty-state');
+
+  if (rejectedList && rejectedTable && rejectedEmpty) {
+    rejectedList.innerHTML = '';
+    if (listData.rejected.length === 0) {
+      rejectedTable.classList.add('hidden');
+      rejectedEmpty.classList.remove('hidden');
+    } else {
+      rejectedTable.classList.remove('hidden');
+      rejectedEmpty.classList.add('hidden');
+
+      listData.rejected.forEach(user => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td style="font-family: var(--font-mono); font-size: 13px;">
+            ${escapeHtml(user.email)}
+            <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">
+              Rejected: ${formatDate(user.rejectedAt)}
+            </div>
+          </td>
+          <td style="text-align: right; vertical-align: middle;">
+            <button class="btn btn-secondary btn-sm btn-restore" data-email="${escapeHtml(user.email)}" style="border-color: rgba(35,134,54,0.3); color: var(--primary); padding: 4px 8px;">Restore</button>
+          </td>
+        `;
+        rejectedList.appendChild(tr);
+      });
+
+      // Bind button events
+      $$('.btn-restore', rejectedList).forEach(btn => {
+        btn.addEventListener('click', () => handleRestore(btn.dataset.email));
+      });
+    }
   }
 }
 
@@ -301,6 +438,25 @@ async function handleAddManual(email) {
   }
 }
 
+async function handleRestore(email) {
+  try {
+    const res = await fetch('http://127.0.0.1:3001/api/admin/users/whitelist-add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      showAlert(`Successfully whitelisted and restored ${email}`, 'success');
+      fetchUsersData();
+    } else {
+      throw new Error(data.error || 'Restoration failed.');
+    }
+  } catch (err) {
+    showAlert(err.message, 'error');
+  }
+}
+
 export function mount() {
   // Fetch initial data
   fetchUsersData();
@@ -327,7 +483,7 @@ export function mount() {
 }
 
 export function unmount() {
-  listData = { allowed: [], users: [], pending: [] };
+  listData = { allowed: [], users: [], pending: [], rejected: [] };
 }
 
 function escapeHtml(str) {
