@@ -395,7 +395,19 @@ function speakText(text) {
 
   if (preferred) {
     currentUtterance.voice = preferred;
-    console.log(`[TTS] Using Edge natural voice: ${preferred.name}`);
+    currentUtterance.lang = preferred.lang;
+    console.log(`[TTS] Using voice: ${preferred.name} (${preferred.lang})`);
+  } else {
+    // Fallback to avoid language-unavailable error in Chrome
+    const defaultVoice = voices.find(v => v.default) || voices[0];
+    if (defaultVoice) {
+      currentUtterance.voice = defaultVoice;
+      currentUtterance.lang = defaultVoice.lang;
+      console.warn(`[TTS] No Indonesian voice found. Falling back to voice: ${defaultVoice.name} (${defaultVoice.lang})`);
+    } else {
+      currentUtterance.lang = lang;
+      console.warn(`[TTS] No voices available yet in SpeechSynthesis.`);
+    }
   }
 
   // Visual feedback helper
@@ -421,9 +433,15 @@ function speakText(text) {
   };
 
   currentUtterance.onend = resetSpk;
-  currentUtterance.onerror = resetSpk;
+  currentUtterance.onerror = (e) => {
+    console.error('[TTS] SpeechSynthesis error:', e.error, e);
+    resetSpk();
+  };
 
-  window.speechSynthesis.speak(currentUtterance);
+  // Add 100ms delay before speak to avoid Chrome's immediate cancel bug
+  setTimeout(() => {
+    window.speechSynthesis.speak(currentUtterance);
+  }, 100);
 }
 
 export function mount() {
@@ -434,6 +452,11 @@ export function mount() {
   const popover = $('#mic-settings-popover');
   const holdToggle = $('#hold-to-record-toggle');
   const messagesEl = $('#chat-messages');
+
+  // Trigger loading voices in Chrome/Safari early
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.getVoices();
+  }
 
   // Register global TTS settings event listener
   window.addEventListener('damz_tts_changed', handleTtsChange);

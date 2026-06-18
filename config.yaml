@@ -5,7 +5,7 @@ agent:
   memory_max_turns: 10
 
 llm:
-  model: "qwen2.5:7b"
+  model: "qwen2.5vl:7b"
   base_url: "http://103.188.170.104:11434"
   temperature: 0.7
 
