@@ -737,15 +737,20 @@ app.get('/api/tts', async (req, res) => {
       });
     }
 
+    // Allow speed adjustment. Higher length_scale means slower speech.
+    // Default to 1.25 for a slower, more natural and clear Indonesian pronunciation.
+    const lengthScale = req.query.length_scale ? parseFloat(req.query.length_scale) : 1.25;
+
     // Generate temp file in OS temp folder
     const tempName = `tts-${crypto.randomBytes(8).toString('hex')}.wav`;
     const tempPath = path.join(os.tmpdir(), tempName);
 
-    addLog('info', 'TTS', `Sintesis suara menggunakan Piper: "${text.substring(0, 30)}..."`);
+    addLog('info', 'TTS', `Sintesis suara menggunakan Piper: "${text.substring(0, 30)}..." (length_scale: ${lengthScale})`);
 
     // Run Piper process
     const child = spawn(piperExe, [
       '--model', voicePath,
+      '--length_scale', lengthScale.toString(),
       '--output_file', tempPath
     ]);
 

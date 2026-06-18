@@ -354,8 +354,22 @@ function speakText(text) {
     }
   };
 
+  // Load speed setting from localStorage to adjust Piper speed (length_scale)
+  const savedSettings = localStorage.getItem('damz_settings');
+  let speed = 1.0;
+  if (savedSettings) {
+    try {
+      const parsed = JSON.parse(savedSettings);
+      if (parsed.tts && parsed.tts.speed) {
+        speed = parsed.tts.speed;
+      }
+    } catch (e) {}
+  }
+  // Piper length_scale is inverse of speed. Default base is 1.25 (slower for Indonesian)
+  const lengthScale = (1.25 / speed).toFixed(2);
+
   // Try to use backend Piper TTS endpoint first
-  const audioUrl = `http://localhost:3001/api/tts?text=${encodeURIComponent(cleanText)}`;
+  const audioUrl = `http://localhost:3001/api/tts?text=${encodeURIComponent(cleanText)}&length_scale=${lengthScale}`;
   currentAudio = new Audio(audioUrl);
 
   currentAudio.onplay = () => {
