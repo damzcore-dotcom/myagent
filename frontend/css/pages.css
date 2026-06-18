@@ -300,8 +300,10 @@
 .page-logs {
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  padding-bottom: 0 !important;
+  height: 100%;
+  padding: var(--content-padding) !important;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .page-logs .logs-toolbar {
@@ -343,10 +345,18 @@
   width: 220px;
 }
 
+.page-logs #logs-terminal {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
 .page-logs .terminal {
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
 .page-logs .terminal-body {
