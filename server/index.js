@@ -1054,7 +1054,9 @@ function getWatchDir() {
       const match = content.match(/watch_dir:\s*"([^"]+)"/);
       if (match) return match[1];
     }
-  } catch (e) {}
+  } catch (e) {
+    addLog('warn', 'SYSTEM', `Gagal membaca watch_dir dari config.yaml: ${e.message}`);
+  }
   return path.join(__dirname, '..', 'rag', 'documents');
 }
 
@@ -1154,7 +1156,9 @@ app.post('/api/documents/search', (req, res) => {
               matchCount++;
             }
           });
-        } catch (e) {}
+        } catch (e) {
+          addLog('warn', 'RAG', `Gagal membaca isi file untuk pencarian (${filename}): ${e.message}`);
+        }
       } else {
         if (filename.toLowerCase().includes(query.toLowerCase())) {
           matchCount = 1;
@@ -1900,6 +1904,26 @@ ${plainTranscript}`;
   } catch (err) {
     addLog('error', 'RECORDER', `Gagal membuat notulensi: ${err.message}`);
     res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/recorder/minutes/:recordingId
+app.get('/api/recorder/minutes/:recordingId', (req, res) => {
+  try {
+    const recordingId = sanitizeRecordingId(req.params.recordingId);
+    if (!recordingId) {
+      return res.status(400).json({ success: false, error: 'Invalid recordingId' });
+    }
+    const recordingDir = path.join(__dirname, '..', 'rag', 'documents', 'recordings', recordingId);
+    const minutesPath = path.join(recordingDir, 'minutes.md');
+    if (!fs.existsSync(minutesPath)) {
+      return res.status(404).json({ success: false, error: 'Notulensi belum dibuat untuk rekaman ini' });
+    }
+    const minutes = fs.readFileSync(minutesPath, 'utf8');
+    res.json({ success: true, minutes });
+  } catch (err) {
+    addLog('error', 'RECORDER', `Gagal mengambil notulensi: ${err.message}`, err);
+    res.status(500).json({ success: false, error: 'Gagal mengambil notulensi' });
   }
 });
 

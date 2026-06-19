@@ -80,9 +80,10 @@ function loadChatHistory() {
     const saved = localStorage.getItem(historyKey);
     if (saved) {
       chatMessages = JSON.parse(saved);
-      return;
     }
-  } catch (e) {}
+  } catch (e) {
+    console.warn('[CHAT] Gagal memuat chat history:', e);
+  }
   
   // Default welcome message
   chatMessages = [
@@ -147,7 +148,9 @@ function initSpeechRecognition() {
         if (parsed.stt && parsed.stt.language) {
           lang = parsed.stt.language === 'English' ? 'en-US' : 'id-ID';
         }
-      } catch (e) {}
+      } catch (e) {
+        console.warn('[CHAT] Gagal parse speech settings:', e);
+      }
     }
     recognition.lang = lang;
 
@@ -186,7 +189,9 @@ export function render() {
       if (parsed.model && parsed.model.active) {
         activeModel = parsed.model.active;
       }
-    } catch(e) {}
+    } catch(e) {
+      console.warn('[CHAT] Gagal parse active model settings:', e);
+    }
   }
 
   const todayStr = new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
@@ -305,7 +310,7 @@ export function render() {
               </div>
               <div class="form-group">
                 <label>Tanggal Rapat</label>
-                <input type="text" id="rec-meeting-date" value="${todayStr}" placeholder="Contoh: 19 Juni 2026">
+                <input type="date" id="rec-meeting-date" value="${new Date().toISOString().split('T')[0]}">
               </div>
               <div class="form-group">
                 <label>Peserta (Opsional)</label>
@@ -535,9 +540,11 @@ function speakText(text) {
         lang = parsed.stt.language === 'English' ? 'en-US' : 'id-ID';
       }
       if (parsed.tts && parsed.tts.voice) {
-        ttsVoiceSetting = parsed.tts.voice; // e.g. 'id_ID-male-medium' or 'id_ID-female-medium'
+        ttsVoiceSetting = parsed.tts.voice;
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('[CHAT] Gagal parse TTS voice settings:', e);
+    }
   }
   currentUtterance.lang = lang;
   currentUtterance.rate = 1.0;
@@ -747,7 +754,9 @@ export function mount() {
     if (recognition) {
       try {
         recognition.stop();
-      } catch (e) {}
+      } catch (e) {
+        console.warn('[CHAT] Gagal menghentikan recognition:', e);
+      }
     }
     stopRecordingUI();
   }
@@ -1272,11 +1281,7 @@ async function viewMinutesFromHistory(recId) {
   if (participantsInput) participantsInput.value = rec.participants || '';
   
   try {
-    const res = await fetch(`${API_BASE}/api/recorder/generate-minutes`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ recordingId: recId })
-    });
+    const res = await fetch(`${API_BASE}/api/recorder/minutes/${recId}`);
     const data = await res.json();
     if (data.success && data.minutes) {
       generatedMinutes = data.minutes;
@@ -1292,7 +1297,20 @@ async function viewMinutesFromHistory(recId) {
         saveBtn.removeAttribute('disabled');
       }
     } else {
-      previewArea.innerHTML = `<div style="text-align:center;color:var(--danger)">Gagal memuat notulensi: ${data.error || 'Unknown error'}</div>`;
+      // Fallback to generate-minutes if not found or failed
+      const genRes = await fetch(`${API_BASE}/api/recorder/generate-minutes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recordingId: recId })
+      });
+      const genData = await genRes.json();
+      if (genData.success && genData.minutes) {
+        generatedMinutes = genData.minutes;
+        previewArea.innerHTML = formatMarkdown(genData.minutes);
+        enableResultsButtons(true);
+      } else {
+        previewArea.innerHTML = `<div style="text-align:center;color:var(--danger)">Gagal memuat atau memproses notulensi: ${genData.error || data.error || 'Unknown error'}</div>`;
+      }
     }
   } catch (err) {
     console.error(err);
@@ -1925,24 +1943,47 @@ function formatMarkdown(mdText) {
   
   let html = mdText;
   
-  html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
-  html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+  // Escape HTML first to prevent broken tags
+  html = html
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  
+  // Blockquotes
+  html = html.replace(/^&gt;\s+(.*$)/gim, '<blockquote>$1</blockquote>');
+  html = html.replace(/<\/blockquote>\s*<\/blockquote>/g, '<br>');
+  
+  // Code blocks and inline code
+  html = html.replace(/```([\s\S]*?)```/g, (match, code) => `<pre><code>${code.trim()}</code></pre>`);
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+  
+  // Headers
+  html = html.replace(/^#### (.*$)/gim, '<h4>$1</h4>');
   html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+  html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+  html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
   
+  // Bold & Italic
   html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
   
-  html = html.replace(/^\s*[-*]\s+(.*$)/gim, '<ul><li>$1</li></ul>');
+  // Lists
+  html = html.replace(/^\s*[-*+]\s+(.*$)/gim, '<ul><li>$1</li></ul>');
   html = html.replace(/<\/ul>\s*<ul>/g, '');
   
   html = html.replace(/^\s*(\d+)\.\s+(.*$)/gim, '<ol><li>$2</li></ol>');
   html = html.replace(/<\/ol>\s*<ol>/g, '');
   
-  html = html.split('\n\n').map(p => {
-    if (p.trim().startsWith('<h') || p.trim().startsWith('<ul') || p.trim().startsWith('<ol')) {
-      return p;
+  // Paragraphs
+  const blocks = html.split(/\n{2,}/);
+  html = blocks.map(block => {
+    const trimmed = block.trim();
+    if (!trimmed) return '';
+    if (/^<(h1|h2|h3|h4|ul|ol|pre|blockquote|div)/i.test(trimmed)) {
+      return trimmed;
     }
-    return `<p>${p.replace(/\n/g, '<br>')}</p>`;
-  }).join('');
+    return `<p>${trimmed.replace(/\n/g, '<br>')}</p>`;
+  }).join('\n');
   
   return html;
 }
@@ -1952,17 +1993,23 @@ export function unmount() {
   if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
   if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }
   if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-    try { mediaRecorder.stop(); } catch (e) {}
+    try { mediaRecorder.stop(); } catch (e) {
+      console.warn('[RECORDER] Gagal menghentikan MediaRecorder di unmount:', e);
+    }
   }
   mediaRecorder = null;
   if (recognitionContinuous) {
-    try { recognitionContinuous.stop(); } catch (e) {}
+    try { recognitionContinuous.stop(); } catch (e) {
+      console.warn('[RECORDER] Gagal menghentikan STT di unmount:', e);
+    }
     recognitionContinuous = null;
   }
   if (stream) {
     try {
       stream.getTracks().forEach(track => track.stop());
-    } catch (e) {}
+    } catch (e) {
+      console.warn('[RECORDER] Gagal menghentikan audio track di unmount:', e);
+    }
     stream = null;
   }
   // Close AudioContext
@@ -1985,9 +2032,9 @@ export function unmount() {
 
   isRecording = false;
   if (recognition) {
-    try {
-      recognition.stop();
-    } catch (e) {}
+    try { recognition.stop(); } catch (e) {
+      console.warn('[CHAT] Gagal cleanup recognition di unmount:', e);
+    }
   }
 
   // Unbind global TTS settings listener
