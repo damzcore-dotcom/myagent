@@ -2295,6 +2295,295 @@ app.get('/api/providers/status', requireAuth, (req, res) => {
   }
 });
 
+// GET /api/cost/history - Detailed cost history (daily breakdown)
+app.get('/api/cost/history', requireAuth, (req, res) => {
+  try {
+    const days = parseInt(req.query.days) || 30;
+    const historyPath = path.join(__dirname, '..', 'data', 'cost_history.json');
+    
+    if (!fs.existsSync(historyPath)) {
+      // If no history file yet, try to generate it via Python
+      const getPythonCommand = () => {
+        const userProfile = process.env.USERPROFILE || 'C:\\Users\\damza';
+        const customPath = path.join(userProfile, 'AppData', 'Local', 'Python', 'bin', 'python.exe');
+        if (fs.existsSync(customPath)) return customPath;
+        return 'python';
+      };
+      
+      try {
+        const { execSync } = require('child_process');
+        execSync(`${getPythonCommand()} -c "from core.cost_tracker import CostTracker; ct = CostTracker(); ct.export_history_json(${days})"`, {
+          cwd: path.join(__dirname, '..'),
+          timeout: 5000
+        });
+      } catch (pyErr) {
+        addLog('warn', 'API', `Failed to generate cost history: ${pyErr.message}`);
+        return res.json({ history: [], days });
+      }
+    }
+    
+    if (fs.existsSync(historyPath)) {
+      const history = JSON.parse(fs.readFileSync(historyPath, 'utf8'));
+      
+      // Aggregate by date for summary view
+      const dailySummary = {};
+      history.forEach(entry => {
+        if (!dailySummary[entry.date]) {
+          dailySummary[entry.date] = { date: entry.date, cost_usd: 0, call_count: 0, agents: {} };
+        }
+        dailySummary[entry.date].cost_usd += entry.cost_usd;
+        dailySummary[entry.date].call_count += entry.call_count;
+        if (!dailySummary[entry.date].agents[entry.agent_id]) {
+          dailySummary[entry.date].agents[entry.agent_id] = { cost_usd: 0, call_count: 0 };
+        }
+        dailySummary[entry.date].agents[entry.agent_id].cost_usd += entry.cost_usd;
+        dailySummary[entry.date].agents[entry.agent_id].call_count += entry.call_count;
+      });
+      
+      res.json({
+        history: Object.values(dailySummary).sort((a, b) => b.date.localeCompare(a.date)),
+        detail: history,
+        days
+      });
+    } else {
+      res.json({ history: [], detail: [], days });
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/agents/config - Update agent configuration (model, prompt)
+app.post('/api/agents/config', requireAuth, (req, res) => {
+  try {
+    const { agent_id, primary, fallback, system_prompt } = req.body;
+    
+    if (!agent_id) {
+      return res.status(400).json({ error: 'agent_id is required' });
+    }
+    
+    const configPath = path.join(__dirname, '..', 'config_agents.yaml');
+    if (!fs.existsSync(configPath)) {
+      return res.status(404).json({ error: 'config_agents.yaml not found' });
+    }
+    
+    let content = fs.readFileSync(configPath, 'utf8');
+    const lines = content.split('\n');
+    
+    // Find the agent section and update fields
+    let inTargetAgent = false;
+    let inSubSection = null;
+    let agentIndent = -1;
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmed = line.trim();
+      const indent = line.length - line.trimStart().length;
+      
+      // Detect agent_id header (indent 2)
+      if (indent === 2 && trimmed === `${agent_id}:`) {
+        inTargetAgent = true;
+        agentIndent = indent;
+        inSubSection = null;
+        continue;
+      }
+      
+      // Detect leaving the target agent (another agent at same indent, or top-level key)
+      if (inTargetAgent && indent <= agentIndent && trimmed.endsWith(':') && i > 0) {
+        break;
+      }
+      
+      if (!inTargetAgent) continue;
+      
+      // Update system_prompt (indent 4)
+      if (indent === 4 && system_prompt && trimmed.startsWith('system_prompt:')) {
+        lines[i] = `    system_prompt: "${system_prompt.replace(/"/g, '\\"')}"`;
+      }
+      
+      // Track sub-sections (primary, fallback)
+      if (indent === 4 && (trimmed === 'primary:' || trimmed === 'fallback:')) {
+        inSubSection = trimmed.replace(':', '');
+      } else if (indent <= 4 && indent > 0 && !trimmed.startsWith('-')) {
+        if (trimmed.endsWith(':') && !trimmed.startsWith('provider') && !trimmed.startsWith('model')) {
+          inSubSection = null;
+        }
+      }
+      
+      // Update provider/model in primary/fallback (indent 6)
+      if (indent === 6 && inSubSection === 'primary' && primary) {
+        if (trimmed.startsWith('provider:') && primary.provider) {
+          lines[i] = `      provider: ${primary.provider}`;
+        }
+        if (trimmed.startsWith('model:') && primary.model) {
+          lines[i] = `      model: ${primary.model}`;
+        }
+      }
+      if (indent === 6 && inSubSection === 'fallback' && fallback) {
+        if (trimmed.startsWith('provider:') && fallback.provider) {
+          lines[i] = `      provider: ${fallback.provider}`;
+        }
+        if (trimmed.startsWith('model:') && fallback.model) {
+          lines[i] = `      model: ${fallback.model}`;
+        }
+      }
+    }
+    
+    fs.writeFileSync(configPath, lines.join('\n'));
+    addLog('info', 'SYSTEM', `Agent config updated: ${agent_id} — primary: ${primary?.provider || 'unchanged'}/${primary?.model || 'unchanged'}`);
+    
+    // Re-read and return updated config
+    const updated = parseAgentsYaml(fs.readFileSync(configPath, 'utf8'));
+    res.json({ success: true, agent: updated.agents[agent_id] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/providers/test - Test connection to a specific provider
+app.post('/api/providers/test', requireAuth, async (req, res) => {
+  try {
+    const { provider, api_key } = req.body;
+    
+    if (!provider) {
+      return res.status(400).json({ error: 'provider is required' });
+    }
+    
+    const startTime = Date.now();
+    let testResult = { success: false, message: '', latency_ms: 0 };
+    
+    if (provider === 'ollama') {
+      // Test Ollama connection
+      const configPath = path.join(__dirname, '..', 'config.yaml');
+      let ollamaUrl = 'http://localhost:11434';
+      if (fs.existsSync(configPath)) {
+        const configContent = fs.readFileSync(configPath, 'utf8');
+        const urlMatch = configContent.match(/base_url:\s*"([^"]+)"/);
+        if (urlMatch) ollamaUrl = urlMatch[1];
+      }
+      
+      try {
+        const response = await fetch(`${ollamaUrl}/api/tags`, { 
+          signal: AbortSignal.timeout(5000)
+        });
+        if (response.ok) {
+          const data = await response.json();
+          testResult = {
+            success: true,
+            message: `Ollama connected. ${data.models?.length || 0} model(s) available.`,
+            latency_ms: Date.now() - startTime,
+            models: (data.models || []).map(m => m.name)
+          };
+        } else {
+          testResult.message = `Ollama responded with status ${response.status}`;
+        }
+      } catch (fetchErr) {
+        testResult.message = `Cannot connect to Ollama at ${ollamaUrl}: ${fetchErr.message}`;
+      }
+    } else if (provider === 'deepseek') {
+      const key = api_key || process.env.DEEPSEEK_API_KEY;
+      if (!key) {
+        testResult.message = 'DEEPSEEK_API_KEY not configured';
+      } else {
+        try {
+          const response = await fetch('https://api.deepseek.com/v1/models', {
+            headers: { 'Authorization': `Bearer ${key}` },
+            signal: AbortSignal.timeout(10000)
+          });
+          if (response.ok) {
+            const data = await response.json();
+            testResult = {
+              success: true,
+              message: `DeepSeek API connected. ${data.data?.length || 0} model(s) available.`,
+              latency_ms: Date.now() - startTime
+            };
+          } else {
+            const errData = await response.text();
+            testResult.message = `DeepSeek API error (${response.status}): ${errData.substring(0, 200)}`;
+          }
+        } catch (fetchErr) {
+          testResult.message = `Cannot connect to DeepSeek API: ${fetchErr.message}`;
+        }
+      }
+    } else if (provider === 'gemini') {
+      const key = api_key || process.env.GEMINI_API_KEY;
+      if (!key) {
+        testResult.message = 'GEMINI_API_KEY not configured';
+      } else {
+        try {
+          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`, {
+            signal: AbortSignal.timeout(10000)
+          });
+          if (response.ok) {
+            const data = await response.json();
+            testResult = {
+              success: true,
+              message: `Gemini API connected. ${data.models?.length || 0} model(s) available.`,
+              latency_ms: Date.now() - startTime
+            };
+          } else {
+            const errData = await response.text();
+            testResult.message = `Gemini API error (${response.status}): ${errData.substring(0, 200)}`;
+          }
+        } catch (fetchErr) {
+          testResult.message = `Cannot connect to Gemini API: ${fetchErr.message}`;
+        }
+      }
+    } else if (provider === 'anthropic') {
+      const key = api_key || process.env.ANTHROPIC_API_KEY;
+      if (!key) {
+        testResult.message = 'ANTHROPIC_API_KEY not configured';
+      } else {
+        try {
+          // Anthropic doesn't have a /models endpoint, so we send a minimal request
+          const response = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+              'x-api-key': key,
+              'anthropic-version': '2023-06-01',
+              'content-type': 'application/json'
+            },
+            body: JSON.stringify({
+              model: 'claude-haiku-4-20250514',
+              max_tokens: 1,
+              messages: [{ role: 'user', content: 'ping' }]
+            }),
+            signal: AbortSignal.timeout(15000)
+          });
+          if (response.ok) {
+            testResult = {
+              success: true,
+              message: 'Anthropic API connected and authenticated.',
+              latency_ms: Date.now() - startTime
+            };
+          } else {
+            const errData = await response.text();
+            // 401 = bad key, but other errors mean the API is reachable
+            if (response.status === 401) {
+              testResult.message = 'Anthropic API key is invalid.';
+            } else {
+              testResult = {
+                success: true,
+                message: `Anthropic API reachable (status ${response.status}).`,
+                latency_ms: Date.now() - startTime
+              };
+            }
+          }
+        } catch (fetchErr) {
+          testResult.message = `Cannot connect to Anthropic API: ${fetchErr.message}`;
+        }
+      }
+    } else {
+      testResult.message = `Unknown provider: ${provider}`;
+    }
+    
+    testResult.latency_ms = testResult.latency_ms || (Date.now() - startTime);
+    addLog('info', 'API', `Provider test: ${provider} — ${testResult.success ? 'OK' : 'FAIL'} (${testResult.latency_ms}ms)`);
+    res.json(testResult);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 
 // Initial cleanup on server start
 cleanupOldAudio();

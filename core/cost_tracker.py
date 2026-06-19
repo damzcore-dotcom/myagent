@@ -82,6 +82,7 @@ class CostTracker:
 
         # Update JSON stats export for Node.js backend
         self.export_stats_json()
+        self.export_history_json()
         return cost
 
     def get_monthly_total(self) -> float:
@@ -135,6 +136,43 @@ class CostTracker:
             "pct": round(pct, 2)
         }
 
+    def get_history(self, days: int = 30) -> List[Dict]:
+        """Returns daily cost history for the last N days."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT 
+                DATE(timestamp) as date,
+                agent_id,
+                provider,
+                model,
+                SUM(input_tokens) as total_input_tokens,
+                SUM(output_tokens) as total_output_tokens,
+                SUM(cost_usd) as total_cost,
+                COUNT(*) as call_count
+            FROM api_usage
+            WHERE DATE(timestamp) >= DATE('now', ?)
+            GROUP BY DATE(timestamp), agent_id, provider, model
+            ORDER BY DATE(timestamp) DESC
+        """, (f"-{days} days",))
+
+        rows = cursor.fetchall()
+        conn.close()
+
+        history = []
+        for row in rows:
+            history.append({
+                "date": row[0],
+                "agent_id": row[1],
+                "provider": row[2],
+                "model": row[3],
+                "input_tokens": row[4],
+                "output_tokens": row[5],
+                "cost_usd": round(row[6], 6),
+                "call_count": row[7]
+            })
+        return history
+
     def export_stats_json(self):
         """Exports aggregated cost summaries to data/agent_stats.json for fast frontend reads."""
         try:
@@ -154,3 +192,15 @@ class CostTracker:
                 json.dump(stats, f, indent=2)
         except Exception as e:
             print(f"[COST TRACKER] Warning: Failed to export agent stats: {e}")
+
+    def export_history_json(self, days: int = 30):
+        """Exports daily cost history to data/cost_history.json for Node.js reads."""
+        try:
+            history = self.get_history(days)
+            export_path = Path(self.db_path).parent / "cost_history.json"
+            export_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            with open(export_path, "w", encoding="utf-8") as f:
+                json.dump(history, f, indent=2)
+        except Exception as e:
+            print(f"[COST TRACKER] Warning: Failed to export cost history: {e}")
