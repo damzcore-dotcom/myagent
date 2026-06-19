@@ -43,6 +43,8 @@
   justify-content: center;
   color: #fff;
   flex-shrink: 0;
+  box-shadow: 0 0 10px rgba(35, 134, 54, 0.35);
+  animation: logoIconGlow 8s ease-in-out infinite;
 }
 
 .sidebar-logo-icon svg {
@@ -56,6 +58,18 @@
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: 0.02em;
+  text-shadow: 0 0 4px rgba(35, 134, 54, 0.25);
+  animation: logoTextNeon 8s ease-in-out infinite;
+}
+
+:root[data-theme="clean"] .sidebar-logo-icon {
+  box-shadow: none;
+  animation: none;
+}
+
+:root[data-theme="clean"] .sidebar-logo-text {
+  text-shadow: none;
+  animation: none;
 }
 
 .sidebar-logo-version {
@@ -128,6 +142,11 @@
   color: var(--primary);
   border-left-color: var(--primary-container);
   font-weight: 600;
+  box-shadow: inset 4px 0 15px rgba(35, 134, 54, 0.08);
+}
+
+:root[data-theme="clean"] .sidebar-nav-item.active {
+  box-shadow: inset 4px 0 15px rgba(212, 74, 0, 0.05);
 }
 
 .sidebar-nav-item svg {
@@ -276,7 +295,38 @@
   overflow-y: auto;
   height: 100vh;
   position: relative;
-  background: var(--bg-base);
+  background: 
+    radial-gradient(circle at 15% 15%, rgba(0, 255, 136, 0.05) 0%, transparent 40%),
+    radial-gradient(circle at 85% 85%, rgba(0, 119, 255, 0.04) 0%, transparent 45%),
+    #0d1117;
+  overflow-x: hidden;
+}
+
+:root[data-theme="clean"] .main-content {
+  background: 
+    radial-gradient(circle at 15% 15%, rgba(212, 74, 0, 0.03) 0%, transparent 40%),
+    radial-gradient(circle at 85% 85%, rgba(9, 105, 218, 0.02) 0%, transparent 45%),
+    var(--bg-base);
+}
+
+/* Subtle Grid Overlay */
+.main-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(35, 134, 54, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(35, 134, 54, 0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+:root[data-theme="clean"] .main-content::before {
+  background-image:
+    linear-gradient(rgba(212, 74, 0, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(212, 74, 0, 0.015) 1px, transparent 1px);
+  background-size: 60px 60px;
 }
 
 /* ── Page Container ─────────────────────────────────── */
@@ -284,6 +334,8 @@
   padding: var(--content-padding);
   animation: fadeIn 0.25s ease;
   min-height: 100%;
+  position: relative;
+  z-index: 1;
 }
 
 .page-header {
