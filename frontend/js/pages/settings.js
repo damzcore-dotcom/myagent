@@ -208,8 +208,19 @@ export function render() {
               </div>
             </div>
           </div>
+
+          <!-- Section E: Multi-Agent Configuration -->
+          <div class="card settings-section" style="margin-top:var(--space-4)">
+            <div class="card-header">
+              <div class="card-title">🤖 Multi-Agent Settings</div>
+            </div>
+            <div class="settings-form-grid" id="settings-multi-agent-section">
+              <div class="empty-state"><div class="empty-state-text">Loading multi-agent config...</div></div>
+            </div>
+          </div>
         </div>
       </div>
+
 
       <!-- Toast -->
       <div class="toast hidden" id="settings-toast"></div>
@@ -357,9 +368,101 @@ async function fetchConfigAndModels() {
   }
 }
 
+async function loadMultiAgentSettings() {
+  try {
+    const statusRes = await fetch(`${API_BASE}/api/providers/status`);
+    let providersStatus = {};
+    if (statusRes.ok) {
+      providersStatus = await statusRes.json();
+    }
+    
+    const agentsRes = await fetch(`${API_BASE}/api/agents`);
+    if (agentsRes.ok) {
+      const data = await agentsRes.json();
+      const section = $('#settings-multi-agent-section');
+      if (section) {
+        if (!data.enabled) {
+          section.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 20px 0;">
+              <p class="text-muted" style="margin-bottom: 12px;">Multi-Agent System config_agents.yaml tidak ditemukan.</p>
+              <div class="settings-hint">Aktifkan multi-agent dengan membuat file config_agents.yaml di root.</div>
+            </div>
+          `;
+          return;
+        }
+
+        // Render providers keys status
+        const providerHtml = Object.entries(providersStatus).map(([p, status]) => {
+          const badgeClass = status.configured ? 'badge--green' : 'badge--red';
+          const badgeText = status.configured ? 'Connected' : 'Missing Key';
+          return `
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border-glass); grid-column: 1 / -1">
+              <span class="settings-label" style="margin:0">${p.toUpperCase()} API</span>
+              <span class="badge ${badgeClass}">${badgeText}</span>
+            </div>
+          `;
+        }).join('');
+
+        // Render agents
+        const agentsHtml = data.agents.map(agent => `
+          <div class="settings-field" style="border-bottom:1px solid var(--border-glass); padding-bottom:12px; margin-bottom:12px; grid-column: 1 / -1">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px">
+              <span style="font-size:1.2rem">${agent.icon || '🤖'}</span>
+              <span class="settings-label" style="margin:0; font-weight:bold">${agent.name}</span>
+            </div>
+            <div class="settings-hint" style="margin-bottom:8px">${agent.description}</div>
+            <div style="display:flex; gap:12px; flex-wrap:wrap">
+              <div style="flex:1; min-width:150px">
+                <label class="settings-label" style="font-size:11px">Primary</label>
+                <input type="text" class="input font-mono" value="${agent.primary.provider.toUpperCase()} : ${agent.primary.model}" readonly style="font-size:11px; background:var(--surface-container)">
+              </div>
+              <div style="flex:1; min-width:150px">
+                <label class="settings-label" style="font-size:11px">Fallback</label>
+                <input type="text" class="input font-mono" value="${agent.fallback.provider.toUpperCase()} : ${agent.fallback.model}" readonly style="font-size:11px; background:var(--surface-container)">
+              </div>
+            </div>
+          </div>
+        `).join('');
+
+        // Render budget limit
+        const budget = data.budget || { monthly_limit_usd: 5.0, alert_threshold_pct: 80 };
+        const budgetHtml = `
+          <div class="settings-field" style="grid-column: 1 / -1">
+            <label class="settings-label">Monthly API Budget Limit: <span style="color:var(--primary); font-weight:bold">$${budget.monthly_limit_usd.toFixed(2)}</span></label>
+            <div class="settings-hint" style="margin-bottom:8px">Limit maksimum penggunaan API Cloud DeepSeek/Gemini/Anthropic per bulan.</div>
+            <div class="settings-field" style="display:flex; align-items:center; gap:12px">
+              <input type="text" class="input font-mono" value="$${budget.monthly_limit_usd.toFixed(2)}" readonly style="max-width:100px; background:var(--surface-container)">
+              <span class="badge badge--yellow">${budget.on_exceed === 'fallback_local' ? 'Local Fallback on Limit' : budget.on_exceed}</span>
+            </div>
+          </div>
+        `;
+
+        section.innerHTML = `
+          <div style="grid-column: 1 / -1; margin-bottom:16px">
+            <h4 style="margin:0 0 8px 0; font-size:13px; color:var(--text-primary)">Provider Keys Status</h4>
+            ${providerHtml}
+          </div>
+          <div style="grid-column: 1 / -1; margin-bottom:16px">
+            <h4 style="margin:0 0 12px 0; font-size:13px; color:var(--text-primary)">Specialized Agents</h4>
+            ${agentsHtml}
+          </div>
+          <div style="grid-column: 1 / -1">
+            <h4 style="margin:0 0 8px 0; font-size:13px; color:var(--text-primary)">Budget & Cost Control</h4>
+            ${budgetHtml}
+          </div>
+        `;
+      }
+    }
+  } catch (err) {
+    console.error('Failed to load multi-agent settings:', err);
+  }
+}
+
 export function mount() {
   // Fetch configuration and models from backend
   fetchConfigAndModels();
+  loadMultiAgentSettings();
+
 
   // Remote toggle
   const remoteToggle = $('#remote-toggle');

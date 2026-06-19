@@ -9,8 +9,16 @@ from pathlib import Path
 from dataclasses import dataclass, field, asdict
 from typing import Optional
 
+# Load environment variables from .env
+try:
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).parent.parent / ".env")
+except ImportError:
+    pass
+
 # Default config path — relative to project root
 CONFIG_PATH = Path(__file__).parent.parent / "config.yaml"
+
 
 
 @dataclass
@@ -45,6 +53,8 @@ class AgentConfig:
         "Hindari markdown, bullet point, atau format panjang."
     )
     memory_max_turns: int = 10
+    allowed_emails: str = ""
+
 
 
 @dataclass
@@ -65,6 +75,7 @@ class AppConfig:
     rag: RAGConfig = field(default_factory=RAGConfig)
     hotkey: str = "ctrl+space"
     output_mode: str = "voice_and_text"  # voice_and_text | text_only | voice_only
+    multi_agent_enabled: bool = False
 
 
 def load_config(path: Optional[Path] = None) -> AppConfig:
@@ -95,6 +106,10 @@ def load_config(path: Optional[Path] = None) -> AppConfig:
     )
     agent = AgentConfig(**raw.get("agent", {}))
     rag = RAGConfig(**raw.get("rag", {}))
+    
+    # Check if multi-agent config file exists in the same parent directory
+    agents_config_path = config_path.parent / "config_agents.yaml"
+    multi_agent_enabled = agents_config_path.exists()
 
     return AppConfig(
         llm=llm,
@@ -104,7 +119,9 @@ def load_config(path: Optional[Path] = None) -> AppConfig:
         rag=rag,
         hotkey=raw.get("hotkey", "ctrl+space"),
         output_mode=raw.get("output_mode", "voice_and_text"),
+        multi_agent_enabled=multi_agent_enabled,
     )
+
 
 
 def save_config(config: AppConfig, path: Optional[Path] = None):

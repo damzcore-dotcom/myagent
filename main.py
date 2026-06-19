@@ -67,7 +67,59 @@ def main():
 
     # ── 6. Init Agent ─────────────────────────────────
     from core.agent import DamzAgent
-    agent = DamzAgent(config, tools=tools, memory=memory, retriever=retriever)
+    
+    if config.multi_agent_enabled:
+        from core.agent_registry import AgentRegistry
+        from core.orchestrator import Orchestrator
+        from core.model_router import ModelRouter
+        from core.cost_tracker import CostTracker
+        from core.shared_memory import SharedMemory
+        
+        registry = AgentRegistry()
+        orchestrator = Orchestrator(registry, ollama)
+        cost_tracker = CostTracker()
+        shared_memory = SharedMemory()
+        model_router = ModelRouter(registry, cost_tracker, ollama.base_url)
+        print("[MAIN] Multi-Agent Hybrid Orchestration enabled")
+    else:
+        agent = DamzAgent(config, tools=tools, memory=memory, retriever=retriever)
+
+    def get_agent_response(text: str) -> str:
+        if config.multi_agent_enabled:
+            import json
+            agent_id = orchestrator.route(text)
+            agent_spec = registry.get_agent(agent_id)
+            
+            temp_agent = DamzAgent(
+                config,
+                tools=tools,
+                memory=memory,
+                retriever=retriever,
+                agent_spec=agent_spec,
+                model_router=model_router,
+                shared_memory=shared_memory,
+                cost_tracker=cost_tracker
+            )
+            raw_response = temp_agent.invoke(text)
+            
+            clean_res = raw_response
+            metadata = {}
+            if "__METADATA__:" in raw_response:
+                parts = raw_response.rsplit("__METADATA__:", 1)
+                clean_res = parts[0].strip()
+                try:
+                    metadata = json.loads(parts[1])
+                except Exception:
+                    pass
+            
+            icon = agent_spec.icon if agent_spec else "🤖"
+            name = agent_spec.name if agent_spec else "Agent"
+            provider = metadata.get("provider_used", "ollama").upper()
+            model_used = metadata.get("model_used", "unknown")
+            print(f"\n[{icon} {name} · {provider} {model_used}]")
+            return clean_res
+        else:
+            return agent.invoke(text)
 
     # ── 7. Init TTS ───────────────────────────────────
     tts = None
@@ -100,7 +152,7 @@ def main():
             stt.pause()
 
         # Get agent response
-        response = agent.invoke(text)
+        response = get_agent_response(text)
         print(f"[DAMZ] {response}")
 
         # Speak response
@@ -110,6 +162,7 @@ def main():
         # Resume STT
         if stt:
             stt.resume()
+
 
     # ── 9. Init STT + Wake Word ───────────────────────
     stt = None
@@ -150,10 +203,7 @@ def main():
                 if user_input.lower() in ("quit", "exit", "q"):
                     break
 
-                # Process through agent
-                if stt:
-                    stt.pause()
-                response = agent.invoke(user_input)
+                response = get_agent_response(user_input)
                 print(f"Damz > {response}")
                 if tts and config.output_mode != "text_only":
                     tts.speak(response)

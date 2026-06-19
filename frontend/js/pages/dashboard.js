@@ -166,9 +166,23 @@ export function render() {
               <span class="quick-action-hint">Reload all services</span>
             </button>
           </div>
+
+          <!-- Active Agents -->
+          <div class="card multi-agent-card" style="margin-top:var(--space-4)">
+            <div class="card-header">
+              <div class="card-title">🤖 Multi-Agent System</div>
+              <span class="badge badge--purple">4 Agents</span>
+            </div>
+            <div class="card-body">
+              <div class="agents-grid" id="agents-grid">
+                <div class="empty-state"><div class="empty-state-text">Loading agents spec...</div></div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="dashboard-column">
+
           <!-- Model Info Card -->
           <div class="card">
             <div class="card-header">
@@ -234,7 +248,21 @@ export function render() {
             </div>
           </div>
 
+          <!-- Cost Tracker Card -->
+          <div class="card cost-card" style="margin-top:var(--space-4)">
+            <div class="card-header">
+              <div class="card-title">💰 API Cost Tracker</div>
+              <span class="badge badge--green" id="cost-total-badge">$0.0000</span>
+            </div>
+            <div class="card-body">
+              <div class="cost-widget" id="cost-widget">
+                <div class="empty-state"><div class="empty-state-text">Loading cost summary...</div></div>
+              </div>
+            </div>
+          </div>
+
           <!-- Activity Feed Card -->
+
           <div class="card">
             <div class="card-header">
               <div class="card-title">Activity Feed</div>
@@ -415,6 +443,108 @@ async function fetchStatsAndMetrics() {
       }
     }
   } catch (e) {}
+
+  // 5. Multi-Agent System Stats
+  await fetchMultiAgentStats();
+}
+
+async function fetchMultiAgentStats() {
+  try {
+    // 1. Fetch Agents and their specs + stats
+    const agentsRes = await fetch(`${API_BASE}/api/agents`);
+    if (agentsRes.ok) {
+      const data = await agentsRes.json();
+      if (data.enabled && data.agents) {
+        const grid = $('#agents-grid');
+        if (grid) {
+          grid.innerHTML = data.agents.map(agent => {
+            const statusClass = agent.stats && agent.stats.call_count > 0 ? 'status-dot--green' : 'status-dot--gray';
+            const callCount = agent.stats ? agent.stats.call_count : 0;
+            const avgTime = agent.stats ? agent.stats.avg_response_time_ms : 0;
+            return `
+              <div class="agent-card-item">
+                <div class="agent-card-item-header">
+                  <span class="agent-card-item-icon">${agent.icon || '🤖'}</span>
+                  <div class="agent-card-item-title-group">
+                    <div class="agent-card-item-name">${agent.name}</div>
+                    <div class="agent-card-item-desc">${agent.description}</div>
+                  </div>
+                  <span class="status-dot ${statusClass}"></span>
+                </div>
+                <div class="agent-card-item-body">
+                  <div class="agent-card-item-meta">
+                    <span class="label-xs text-muted">Primary:</span>
+                    <span class="value-xs font-mono">${agent.primary.provider.toUpperCase()} (${agent.primary.model})</span>
+                  </div>
+                  <div class="agent-card-item-meta">
+                    <span class="label-xs text-muted">Fallback:</span>
+                    <span class="value-xs font-mono text-muted">${agent.fallback.provider} (${agent.fallback.model})</span>
+                  </div>
+                  <div class="agent-card-item-stats">
+                    <span class="badge badge--blue btn-xs">${callCount} Calls</span>
+                    <span class="badge badge--gray btn-xs">${avgTime}ms avg</span>
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+      } else {
+        const grid = $('#agents-grid');
+        if (grid) grid.innerHTML = `<div class="empty-state"><div class="empty-state-text">Multi-Agent System is not enabled.</div></div>`;
+      }
+    }
+
+    // 2. Fetch Cost summary
+    const costRes = await fetch(`${API_BASE}/api/cost/summary`);
+    if (costRes.ok) {
+      const costData = await costRes.json();
+      const badge = $('#cost-total-badge');
+      if (badge) {
+        badge.textContent = `$${(costData.total_usd || 0).toFixed(4)}`;
+      }
+      
+      const widget = $('#cost-widget');
+      if (widget) {
+        let agentBreakdown = '';
+        if (costData.by_agent && Object.keys(costData.by_agent).length > 0) {
+          agentBreakdown = Object.entries(costData.by_agent).map(([agent, cost]) => `
+            <div class="cost-row">
+              <span class="cost-label font-mono">${agent}</span>
+              <span class="cost-value font-mono">$${cost.toFixed(4)}</span>
+            </div>
+          `).join('');
+        } else {
+          agentBreakdown = '<div class="empty-state-text" style="font-size:11px">No cost data recorded this month.</div>';
+        }
+        
+        let providerBreakdown = '';
+        if (costData.by_provider && Object.keys(costData.by_provider).length > 0) {
+          providerBreakdown = Object.entries(costData.by_provider).map(([provider, cost]) => `
+            <div class="cost-row">
+              <span class="cost-label font-mono">${provider}</span>
+              <span class="cost-value font-mono">$${cost.toFixed(4)}</span>
+            </div>
+          `).join('');
+        }
+        
+        widget.innerHTML = `
+          <div class="cost-section">
+            <div class="cost-section-title">Breakdown by Agent</div>
+            ${agentBreakdown}
+          </div>
+          ${providerBreakdown ? `
+          <div class="cost-section" style="margin-top:12px;border-top:1px dashed var(--border-glass);padding-top:8px">
+            <div class="cost-section-title">Breakdown by Provider</div>
+            ${providerBreakdown}
+          </div>
+          ` : ''}
+        `;
+      }
+    }
+  } catch (err) {
+    console.error('Failed to fetch multi-agent stats:', err);
+  }
 }
 
 export function mount() {
@@ -425,6 +555,8 @@ export function mount() {
 
   // Initial fetch
   fetchStatsAndMetrics();
+  fetchMultiAgentStats();
+
 
   // Periodic metrics polling
   metricsInterval = setInterval(fetchStatsAndMetrics, 3000);

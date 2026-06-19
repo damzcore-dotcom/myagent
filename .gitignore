@@ -30,3 +30,9 @@ yarn-error.log*
 
 # RAG Documents and Local Recordings
 rag/
+
+# Python caches
+__pycache__/
+*.pyc
+core/**/__pycache__/
+

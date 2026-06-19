@@ -410,13 +410,24 @@ function renderMessages() {
         </div>
       `;
     }
+    const badgeHtml = msg.agent_name ? `
+      <div class="agent-badge">
+        <span class="agent-badge__icon">${escapeHtml(msg.icon || '🤖')}</span>
+        <span class="agent-badge__name">${escapeHtml(msg.agent_name.toUpperCase())}</span>
+        <span class="agent-badge__model">${escapeHtml(msg.provider_used ? msg.provider_used.toUpperCase() : '')} ${escapeHtml(msg.model_used || '')}</span>
+      </div>
+    ` : '';
+    
     return `
       <div class="chat-msg chat-msg--agent">
+        ${badgeHtml}
         <div class="chat-msg-content">${escapeHtml(msg.content)}</div>
         <div class="chat-msg-meta">
           <span>${formatTime(msg.timestamp)}</span>
-          ${msg.model ? `<span>${msg.model}</span>` : ''}
+          ${msg.agent_name ? '' : (msg.model ? `<span>${escapeHtml(msg.model)}</span>` : '')}
           ${msg.latency ? `<span>${msg.latency}ms</span>` : ''}
+          ${msg.cost_usd > 0 ? `<span class="badge badge--green">$${msg.cost_usd.toFixed(4)}</span>` : ''}
+          ${msg.is_fallback ? `<span class="badge badge--yellow">Local Fallback</span>` : ''}
         </div>
       </div>
     `;
@@ -1001,7 +1012,15 @@ async function handleChatResponse(text) {
     if (data.success && data.content) {
       // Filter out any Chinese characters and punctuation (hallucinations) from the response text
       const cleanContent = data.content.replace(/[\u4e00-\u9fff\u3400-\u4dbf\u3000-\u303f\uff00-\uffef]/g, '').trim();
-      await appendAgentMessage(cleanContent, activeModel, data.latency || 1000);
+      await appendAgentMessage(cleanContent, activeModel, data.latency || 1000, {
+        agent_id: data.agent_id,
+        agent_name: data.agent_name,
+        icon: data.icon,
+        provider_used: data.provider_used,
+        model_used: data.model_used,
+        cost_usd: data.cost_usd,
+        is_fallback: data.is_fallback
+      });
       // Speak the agent's response if TTS is enabled
       speakText(cleanContent);
     } else {
@@ -1078,23 +1097,48 @@ function appendUserMessage(content, attachments = []) {
   messagesEl.scrollTop = messagesEl.scrollHeight;
 }
 
-async function appendAgentMessage(content, model, latency) {
+async function appendAgentMessage(content, model, latency, metadata = {}) {
   const messagesEl = $('#chat-messages');
   if (!messagesEl) return;
 
   const now = new Date().toISOString();
-  const msg = { id: uid(), role: 'agent', content, timestamp: now, model, latency };
+  const msg = { 
+    id: uid(), 
+    role: 'agent', 
+    content, 
+    timestamp: now, 
+    model, 
+    latency,
+    agent_id: metadata.agent_id,
+    agent_name: metadata.agent_name,
+    icon: metadata.icon,
+    provider_used: metadata.provider_used,
+    model_used: metadata.model_used,
+    cost_usd: metadata.cost_usd,
+    is_fallback: metadata.is_fallback
+  };
   chatMessages.push(msg);
   saveChatHistory();
+
+  const badgeHtml = msg.agent_name ? `
+    <div class="agent-badge">
+      <span class="agent-badge__icon">${escapeHtml(msg.icon || '🤖')}</span>
+      <span class="agent-badge__name">${escapeHtml(msg.agent_name.toUpperCase())}</span>
+      <span class="agent-badge__model">${escapeHtml(msg.provider_used ? msg.provider_used.toUpperCase() : '')} ${escapeHtml(msg.model_used || '')}</span>
+    </div>
+  ` : '';
 
   const div = document.createElement('div');
   div.className = 'chat-msg chat-msg--agent';
   div.innerHTML = `
+    ${badgeHtml}
     <div class="chat-msg-content" id="msg-${msg.id}"></div>
     <div class="chat-msg-meta">
       <span>${formatTime(now)}</span>
-      <span>${model}</span>
+      ${msg.agent_name ? '' : `<span>${escapeHtml(model)}</span>`}
       <span>${latency}ms</span>
+      ${msg.cost_usd > 0 ? `<span class="badge badge--green">$${msg.cost_usd.toFixed(4)}</span>` : ''}
+      ${msg.is_fallback ? `<span class="badge badge--yellow">Local Fallback</span>` : ''}
     </div>
   `;
   messagesEl.appendChild(div);

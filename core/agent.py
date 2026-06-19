@@ -12,16 +12,23 @@ from core.ollama_client import OllamaClient
 class DamzAgent:
     """Main agent class coordinating LLM, memory, and tools."""
 
-    def __init__(self, config, tools: list = None, memory=None, retriever=None):
+    def __init__(self, config, tools: list = None, memory=None, retriever=None,
+                 agent_spec=None, model_router=None, shared_memory=None, cost_tracker=None):
         self.config = config
         self.tools = tools or []
         self.memory = memory
         self.retriever = retriever
         self.ollama = OllamaClient(config.llm.base_url)
+        self.agent_spec = agent_spec
+        self.model_router = model_router
+        self.shared_memory = shared_memory
+        self.cost_tracker = cost_tracker
         self._executor = None
         self._use_langchain = False
 
-        self._init_agent()
+        if not self.agent_spec:
+            self._init_agent()
+
 
     def _init_agent(self):
         """Initialize the agent — try LangChain first, fall back to direct."""
@@ -102,7 +109,67 @@ Input: {input}
         if rag_context:
             augmented_input = f"{rag_context}\n\nPertanyaan: {user_input}"
 
-        # Get chat history
+        # Multi-Agent Mode routing flow
+        if self.agent_spec and self.model_router:
+            import json
+            messages = []
+            if self.memory:
+                messages.extend(self.memory.short.get())
+            messages.append({"role": "user", "content": augmented_input})
+
+            res = self.model_router.invoke(
+                agent_id=self.agent_spec.id,
+                messages=messages,
+                temperature=self.config.llm.temperature
+            )
+
+            if res["success"]:
+                answer = res["content"]
+            else:
+                answer = f"Maaf, terjadi kesalahan: {res.get('error', 'Koneksi gagal')}"
+
+            elapsed_ms = int((time.time() - start) * 1000)
+
+            if self.cost_tracker:
+                self.cost_tracker.record(
+                    agent_id=self.agent_spec.id,
+                    provider=res["provider_used"],
+                    model=res["model_used"],
+                    input_tokens=res["input_tokens"],
+                    output_tokens=res["output_tokens"]
+                )
+
+            if self.shared_memory:
+                self.shared_memory.add_turn(
+                    agent_id=self.agent_spec.id,
+                    user_input=user_input,
+                    agent_output=answer,
+                    provider=res["provider_used"],
+                    model=res["model_used"],
+                    response_time_ms=elapsed_ms
+                )
+
+            metadata = {
+                "agent_id": self.agent_spec.id,
+                "agent_name": self.agent_spec.name,
+                "provider_used": res["provider_used"],
+                "model_used": res["model_used"],
+                "input_tokens": res["input_tokens"],
+                "output_tokens": res["output_tokens"],
+                "response_time_ms": elapsed_ms,
+                "is_fallback": res["is_fallback"]
+            }
+
+            answer_with_meta = f"{answer}\n__METADATA__:{json.dumps(metadata)}"
+
+            if self.memory:
+                self.memory.add_turn(user_input, answer)
+
+            elapsed = time.time() - start
+            print(f"[AGENT] {self.agent_spec.name} response in {elapsed:.1f}s")
+            return answer_with_meta
+
+        # Original Single-Agent Mode flow
         chat_history = ""
         if self.memory:
             chat_history = self.memory.short.get_formatted()
@@ -128,6 +195,7 @@ Input: {input}
         elapsed = time.time() - start
         print(f"[AGENT] Response in {elapsed:.1f}s")
         return answer
+
 
     def _direct_chat(self, user_input: str, chat_history: str) -> str:
         """Direct chat using Ollama API (fallback when LangChain unavailable)."""

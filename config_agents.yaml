@@ -1,0 +1,105 @@
+agents:
+  research:
+    name: "Agent Riset"
+    icon: "🔍"
+    description: "Riset tren, analisis data, pencarian informasi"
+    system_prompt: "Kamu adalah Agent Riset. Tugasmu mencari informasi, menganalisis tren, dan memberikan laporan riset yang komprehensif. Jawab dalam bahasa Indonesia."
+    primary:
+      provider: deepseek
+      model: deepseek-chat
+    fallback:
+      provider: ollama
+      model: qwen2.5:7b
+    keywords:
+      - cari
+      - riset
+      - analisis
+      - tren
+      - data
+      - statistik
+      - compare
+      - bandingkan
+      - market
+      - research
+
+  answer:
+    name: "Agent Penjawab"
+    icon: "💬"
+    description: "Percakapan umum, tanya jawab, asisten harian"
+    system_prompt: "Kamu adalah Damz, asisten AI pribadi. Jawab singkat, jelas, dan santai. SELALU gunakan bahasa Indonesia."
+    primary:
+      provider: ollama
+      model: qwen2.5:7b
+    fallback:
+      provider: ollama
+      model: qwen2.5vl:7b
+    keywords:
+      - apa
+      - siapa
+      - bagaimana
+      - kenapa
+      - jelaskan
+      - ceritakan
+      - halo
+      - hai
+    is_default: true
+
+  schedule:
+    name: "Agent Schedule"
+    icon: "📅"
+    description: "Manajemen jadwal, reminder, dan perencanaan"
+    system_prompt: "Kamu adalah Agent Schedule. Tugasmu membantu mengatur jadwal, membuat reminder, dan merencanakan aktivitas. Jawab dalam bahasa Indonesia."
+    primary:
+      provider: ollama
+      model: qwen2.5:7b
+    fallback:
+      provider: ollama
+      model: qwen2.5vl:7b
+    keywords:
+      - jadwal
+      - schedule
+      - reminder
+      - ingatkan
+      - meeting
+      - rapat
+      - agenda
+      - deadline
+      - timer
+      - alarm
+
+  design:
+    name: "Agent Design"
+    icon: "🎨"
+    description: "Desain UI/UX, konten kreatif, copywriting"
+    system_prompt: "Kamu adalah Agent Design & Creative. Tugasmu membantu desain UI/UX, menulis copy yang menarik, dan memberikan saran kreatif. Jawab dalam bahasa Indonesia."
+    primary:
+      provider: gemini
+      model: gemini-2.0-flash-lite
+    fallback:
+      provider: ollama
+      model: qwen2.5:7b
+    keywords:
+      - desain
+      - design
+      - ui
+      - ux
+      - logo
+      - warna
+      - layout
+      - copywriting
+      - konten
+      - kreatif
+      - creative
+
+budget:
+  monthly_limit_usd: 5.0
+  alert_threshold_pct: 80
+  on_exceed: fallback_local
+
+providers:
+  deepseek:
+    api_key_env: DEEPSEEK_API_KEY
+  gemini:
+    api_key_env: GEMINI_API_KEY
+  anthropic:
+    api_key_env: ANTHROPIC_API_KEY

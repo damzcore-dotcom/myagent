@@ -904,6 +904,71 @@ app.post('/api/ollama/chat', async (req, res) => {
       }
     }
 
+    // Check if multi-agent configuration is enabled
+    const configAgentsPath = path.join(__dirname, '..', 'config_agents.yaml');
+    if (fs.existsSync(configAgentsPath)) {
+      addLog('info', 'LLM', 'Routing query through Multi-Agent Bridge (bridge.py)...');
+      try {
+        const getPythonCommand = () => {
+          const userProfile = process.env.USERPROFILE || 'C:\\Users\\damza';
+          const customPath = path.join(userProfile, 'AppData', 'Local', 'Python', 'bin', 'python.exe');
+          if (fs.existsSync(customPath)) return customPath;
+          return 'python';
+        };
+        const pythonProcess = spawn(getPythonCommand(), [path.join(__dirname, '..', 'bridge.py')]);
+
+        
+        let stdoutData = '';
+        let stderrData = '';
+        
+        pythonProcess.stdout.on('data', (chunk) => {
+          stdoutData += chunk.toString();
+        });
+        
+        pythonProcess.stderr.on('data', (chunk) => {
+          stderrData += chunk.toString();
+        });
+        
+        const payload = {
+          messages: recentMessages,
+          temperature: temperature || 0.7
+        };
+        
+        pythonProcess.stdin.write(JSON.stringify(payload));
+        pythonProcess.stdin.end();
+        
+        const exitCode = await new Promise((resolve) => {
+          pythonProcess.on('close', resolve);
+        });
+        
+        if (exitCode === 0 && stdoutData) {
+          const result = JSON.parse(stdoutData.trim());
+          if (result.success) {
+            addLog('info', 'LLM', `Multi-Agent: ${result.agent_name} (${result.provider_used} - ${result.model_used}) in ${result.response_time_ms}ms.`);
+            return res.json({
+              success: true,
+              content: result.content,
+              done: true,
+              latency: result.response_time_ms,
+              agent_id: result.agent_id,
+              agent_name: result.agent_name,
+              icon: result.icon,
+              provider_used: result.provider_used,
+              model_used: result.model_used,
+              cost_usd: result.cost_usd,
+              is_fallback: result.is_fallback
+            });
+          } else {
+            addLog('warn', 'LLM', `Multi-Agent Bridge error: ${result.error}. Falling back to default Ollama...`);
+          }
+        } else {
+          addLog('warn', 'LLM', `Multi-Agent Bridge exit ${exitCode}. Stderr: ${stderrData}. Falling back to default Ollama...`);
+        }
+      } catch (bridgeErr) {
+        addLog('warn', 'LLM', `Failed to run Multi-Agent Bridge: ${bridgeErr.message}. Falling back to default Ollama...`);
+      }
+    }
+
     const formattedMessages = [
       { role: 'system', content: systemPrompt },
       ...recentMessages
@@ -940,6 +1005,7 @@ app.post('/api/ollama/chat', async (req, res) => {
     res.json({ success: false, error: err.message });
   }
 });
+
 
 // ── Model Load & Unload APIs ─────────────────────────
 
@@ -2054,6 +2120,181 @@ app.post('/api/recorder/save-to-knowledge', (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 });
+
+
+// ── Multi-Agent API Endpoints ─────────────────────────
+
+function parseAgentsYaml(content) {
+  const result = { agents: {}, budget: {}, providers: {} };
+  let currentTopKey = null;
+  let currentAgentId = null;
+  let currentSubKey = null;
+  
+  content.split('\n').forEach(line => {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) return;
+    
+    const indent = line.length - line.trimStart().length;
+    
+    if (indent === 0) {
+      if (trimmed.startsWith('agents:')) currentTopKey = 'agents';
+      else if (trimmed.startsWith('budget:')) currentTopKey = 'budget';
+      else if (trimmed.startsWith('providers:')) currentTopKey = 'providers';
+      else currentTopKey = null;
+      currentAgentId = null;
+      currentSubKey = null;
+      return;
+    }
+    
+    if (currentTopKey === 'agents') {
+      if (indent === 2) {
+        const match = trimmed.match(/^([a-zA-Z0-9_-]+):$/);
+        if (match) {
+          currentAgentId = match[1];
+          result.agents[currentAgentId] = { id: currentAgentId, keywords: [] };
+          currentSubKey = null;
+        }
+      } else if (indent === 4 && currentAgentId) {
+        const match = trimmed.match(/^([a-zA-Z0-9_-]+):\s*(.*)$/);
+        if (match) {
+          const key = match[1];
+          const val = match[2].trim().replace(/^["']|["']$/g, '');
+          if (val) {
+            result.agents[currentAgentId][key] = val === 'true' ? true : (val === 'false' ? false : val);
+          } else {
+            currentSubKey = key;
+            if (key === 'primary' || key === 'fallback') {
+              result.agents[currentAgentId][key] = {};
+            }
+          }
+        }
+      } else if (indent === 6 && currentAgentId && currentSubKey) {
+        if (trimmed.startsWith('-')) {
+          const val = trimmed.substring(1).trim().replace(/^["']|["']$/g, '');
+          if (currentSubKey === 'keywords') {
+            result.agents[currentAgentId].keywords.push(val);
+          }
+        } else {
+          const match = trimmed.match(/^([a-zA-Z0-9_-]+):\s*(.*)$/);
+          if (match && (currentSubKey === 'primary' || currentSubKey === 'fallback')) {
+            const key = match[1];
+            const val = match[2].trim().replace(/^["']|["']$/g, '');
+            result.agents[currentAgentId][currentSubKey][key] = val;
+          }
+        }
+      }
+    } else if (currentTopKey === 'budget') {
+      const match = trimmed.match(/^([a-zA-Z0-9_-]+):\s*(.*)$/);
+      if (match) {
+        const key = match[1];
+        const val = match[2].trim().replace(/^["']|["']$/g, '');
+        result.budget[key] = isNaN(val) ? val : Number(val);
+      }
+    } else if (currentTopKey === 'providers') {
+      if (indent === 2) {
+        const match = trimmed.match(/^([a-zA-Z0-9_-]+):$/);
+        if (match) {
+          currentSubKey = match[1];
+          result.providers[currentSubKey] = {};
+        }
+      } else if (indent === 4 && currentSubKey) {
+        const match = trimmed.match(/^([a-zA-Z0-9_-]+):\s*(.*)$/);
+        if (match) {
+          const key = match[1];
+          const val = match[2].trim().replace(/^["']|["']$/g, '');
+          result.providers[currentSubKey][key] = val;
+        }
+      }
+    }
+  });
+  return result;
+}
+
+// GET /api/agents - List all agents + stats
+app.get('/api/agents', requireAuth, (req, res) => {
+  try {
+    const configPath = path.join(__dirname, '..', 'config_agents.yaml');
+    if (!fs.existsSync(configPath)) {
+      return res.json({ enabled: false, agents: [] });
+    }
+    const content = fs.readFileSync(configPath, 'utf8');
+    const parsed = parseAgentsYaml(content);
+    
+    // Read interaction stats
+    const statsPath = path.join(__dirname, '..', 'data', 'agent_interaction_stats.json');
+    let stats = {};
+    if (fs.existsSync(statsPath)) {
+      try {
+        stats = JSON.parse(fs.readFileSync(statsPath, 'utf8'));
+      } catch (e) {}
+    }
+    
+    const agentsList = Object.values(parsed.agents).map(agent => {
+      const agentStats = stats[agent.id] || { call_count: 0, avg_response_time_ms: 0 };
+      return {
+        ...agent,
+        stats: agentStats
+      };
+    });
+    
+    res.json({
+      enabled: true,
+      agents: agentsList,
+      budget: parsed.budget
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/agents/:id - Get specific agent
+app.get('/api/agents/:id', requireAuth, (req, res) => {
+  try {
+    const agentId = req.params.id;
+    const configPath = path.join(__dirname, '..', 'config_agents.yaml');
+    if (!fs.existsSync(configPath)) {
+      return res.status(404).json({ error: 'Multi-agent not enabled' });
+    }
+    const content = fs.readFileSync(configPath, 'utf8');
+    const parsed = parseAgentsYaml(content);
+    const agent = parsed.agents[agentId];
+    if (!agent) {
+      return res.status(404).json({ error: `Agent ${agentId} not found` });
+    }
+    res.json(agent);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/cost/summary - Get API cost tracking stats
+app.get('/api/cost/summary', requireAuth, (req, res) => {
+  try {
+    const statsPath = path.join(__dirname, '..', 'data', 'agent_stats.json');
+    if (!fs.existsSync(statsPath)) {
+      return res.json({ total_usd: 0, by_agent: {}, by_provider: {} });
+    }
+    const data = JSON.parse(fs.readFileSync(statsPath, 'utf8'));
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/providers/status - Get API keys status
+app.get('/api/providers/status', requireAuth, (req, res) => {
+  try {
+    res.json({
+      deepseek: { configured: !!process.env.DEEPSEEK_API_KEY },
+      gemini: { configured: !!process.env.GEMINI_API_KEY },
+      anthropic: { configured: !!process.env.ANTHROPIC_API_KEY },
+      ollama: { configured: true }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 
 // Initial cleanup on server start
 cleanupOldAudio();
