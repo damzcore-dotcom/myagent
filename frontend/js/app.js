@@ -325,11 +325,48 @@ function getPageFromHash() {
   return routes[hash] ? hash : 'dashboard';
 }
 
+/* ── Inactivity Auto-Logout ────────────────────────── */
+let inactivityTimeout = null;
+const INACTIVITY_LIMIT_MS = 60 * 60 * 1000; // 1 hour
+
+function resetInactivityTimeout() {
+  if (inactivityTimeout) clearTimeout(inactivityTimeout);
+  if (checkAuth()) {
+    inactivityTimeout = setTimeout(() => {
+      console.warn('[AUTH] Sesi berakhir karena tidak aktif selama 1 jam.');
+      if (typeof LoginPage.logout === 'function') {
+        LoginPage.logout();
+        setTimeout(() => {
+          alert('Sesi Anda telah berakhir karena tidak aktif selama 1 jam. Silakan login kembali.');
+        }, 100);
+      }
+    }, INACTIVITY_LIMIT_MS);
+  }
+}
+
+function initInactivityTracker() {
+  const events = ['mousemove', 'keydown', 'mousedown', 'touchstart', 'scroll'];
+  events.forEach(evt => {
+    window.addEventListener(evt, resetInactivityTimeout, { passive: true });
+  });
+  // Setup listener for localstorage changes so if user logs out from another tab, this tab also clears
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'damz_session' && !e.newValue) {
+      if (typeof showLogin === 'function' && currentPageName !== 'login') {
+        showLogin();
+      }
+    }
+  });
+}
+
 /* ── Initialization ────────────────────────────────── */
 function init() {
   // Initialize theme mode
   const savedTheme = localStorage.getItem('damz_theme') || 'dark';
   document.documentElement.setAttribute('data-theme', savedTheme);
+  
+  // Initialize global inactivity tracker
+  initInactivityTracker();
 
   const sidebar = $('#sidebar');
   const main = $('#main-content');
@@ -349,6 +386,7 @@ function init() {
   // Check auth and show login or app
   if (checkAuth()) {
     showApp();
+    resetInactivityTimeout(); // start timer explicitly if already logged in
     
     // Background validation of session token on startup
     fetch(`${API_BASE}/api/auth/get-session`)
